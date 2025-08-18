@@ -1,0 +1,187 @@
+import React from 'react';
+import { User, Settings, Shield, Bell, Download, LogOut } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+
+export function ProfilePage() {
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Profile & Settings</h1>
+        <p className="text-gray-600 mt-1">Manage your account and preferences</p>
+      </div>
+
+      {/* Profile Info */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="flex items-center space-x-4 mb-6">
+          <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
+            <User className="w-8 h-8 text-primary-600" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              {user?.first_name} {user?.last_name}
+            </h2>
+            <p className="text-gray-600">{user?.email}</p>
+            <p className="text-sm text-gray-500">Member since {new Date().getFullYear()}</p>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-900">127</div>
+            <div className="text-sm text-gray-600">Days Active</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-900">45</div>
+            <div className="text-sm text-gray-600">Symptoms Logged</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-900">12</div>
+            <div className="text-sm text-gray-600">AI Analyses</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Settings */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Account Settings */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <Settings className="w-5 h-5 mr-2" />
+            Account Settings
+          </h3>
+          
+          <div className="space-y-3">
+            <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="font-medium text-gray-900">Personal Information</div>
+              <div className="text-sm text-gray-600">Update your name, email, and contact details</div>
+            </button>
+            
+            <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="font-medium text-gray-900">MCAS Profile</div>
+              <div className="text-sm text-gray-600">Update severity level and diagnosis information</div>
+            </button>
+            
+            <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="font-medium text-gray-900">Password & Security</div>
+              <div className="text-sm text-gray-600">Change password and security settings</div>
+            </button>
+          </div>
+        </div>
+
+        {/* Privacy & Notifications */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <Bell className="w-5 h-5 mr-2" />
+            Preferences
+          </h3>
+          
+          <div className="space-y-3">
+            <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="font-medium text-gray-900">Notifications</div>
+              <div className="text-sm text-gray-600">Manage email and push notification preferences</div>
+            </button>
+            
+            <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="font-medium text-gray-900">Privacy Settings</div>
+              <div className="text-sm text-gray-600">Control data sharing and visibility settings</div>
+            </button>
+            
+            <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="font-medium text-gray-900">App Preferences</div>
+              <div className="text-sm text-gray-600">Theme, language, and display settings</div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Data & Export */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <Download className="w-5 h-5 mr-2" />
+          Data Management
+        </h3>
+        
+        <div className="grid md:grid-cols-2 gap-4">
+          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+            <div className="font-medium text-gray-900 mb-1">Export Health Data</div>
+            <div className="text-sm text-gray-600">Download your symptoms, foods, and analysis data</div>
+          </button>
+          
+          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+            <div className="font-medium text-gray-900 mb-1">Medical Report</div>
+            <div className="text-sm text-gray-600">Generate HIPAA-compliant report for your doctor</div>
+          </button>
+        </div>
+      </div>
+
+      {/* Security */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <Shield className="w-5 h-5 mr-2" />
+          Security & Privacy
+        </h3>
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-green-800 font-medium">Account Security: Strong</span>
+            </div>
+            <button className="text-green-700 hover:text-green-800 text-sm font-medium">
+              Review Settings
+            </button>
+          </div>
+          
+          <div className="text-sm text-gray-600 space-y-2">
+            <div className="flex items-center space-x-2">
+              <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+              <span>Two-factor authentication: Enabled</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+              <span>Data encryption: End-to-end encrypted</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+              <span>HIPAA compliance: Fully compliant</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Account Actions */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Actions</h3>
+        
+        <div className="flex flex-col sm:flex-row gap-4">
+          <button
+            onClick={handleLogout}
+            className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out</span>
+          </button>
+          
+          <button className="flex items-center justify-center space-x-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg transition-colors">
+            <span>Delete Account</span>
+          </button>
+        </div>
+        
+        <p className="text-xs text-gray-500 mt-3">
+          Deleting your account will permanently remove all your data and cannot be undone.
+        </p>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,139 @@
+# MCAS Mat-app - Brukerinput og Krav Sammendrag
+
+## Prosjektmål
+Utvikle en omfattende MCAS (Mast Cell Activation Syndrome) mat- og helse-app for familier som trenger å administrere matsikkerhet og spore symptomer for å identifisere utløsere.
+
+## Hovedfunksjonalitetskrav
+
+### 1. Matdatabase og Søk
+- Dual database-system med OpenFoodFacts (bearbeidede matvarer) og Fooddata.dk (råvarer)
+- Histamin-nivå filtrering (lav/medium/høy) for trygg matvalg
+- Omfattende næringsinformasjon fra laboratorieanalyser
+- Biogene aminer-visning (10 typer: Histamin, Serotonin, Choline, Tyramin, etc.)
+- Norsk/dansk språkstøtte med automatisk oversettelse
+- Direktelinker til Fooddata.dk-oppføringer
+
+### 2. Godkjente Matvarer
+- Fellesskapsdatabase hvor alle brukere kan bidra
+- Klar attribusjon av hvem som la til hver matvare og når
+- Tillatelsesbasert sletting (kun bidragsyter kan slette egne oppføringer)
+- "Legg til godkjente matvarer" funksjonalitet fra begge databaser
+
+### 3. Helsedagbok (Utvidet fra Matdagbok)
+**Opprinnelig krav:** "Expand an existing food diary (Matdagbok) into a comprehensive health diary for MCAS patients. The system should track supplements, food intake, symptoms, and general health metrics (sleep, fatigue, stress) to help identify triggers that cause symptom improvement or worsening."
+
+#### Mat og måltider:
+- Registrering av mat med histamin-nivåer
+- Tidsregistrering for måltider
+- Korrelasjonsdata for symptomutløsere
+
+#### Kosttilskudd:
+- Navn, dosering, og tidspunkt for inntak
+- Sporingshistorikk for kosttilskudd
+- Integrering med symptomsporing
+
+#### Helsemetrikker:
+- Søvnkvalitet og timer
+- Energinivå (1-10 skala)
+- Stressnivå (1-10 skala)
+- Humør (1-10 skala)
+- Generell velvære
+- Daglige notater
+
+#### Symptomsporing:
+- Symptomtype og alvorlighetsgrad
+- Varighet og intensitet
+- Potensielle utløsere
+- Tiltak som ble tatt
+- Tidsstempelregistrering
+
+### 4. AI-oppskriftgenerering
+- OpenAI-integrasjon for MCAS-sikre oppskrifter
+- Porsjonstilpasning med +/- kontroller
+- Automatisk ingrediensberegning med smart brøkhandtering
+- Egendefinerte oppskriftforespørsler
+- Redigeringsfunksjonalitet for AI-genererte oppskrifter
+- Lagringssystem kun ved eksplisitt brukerhandling (ikke automatisk)
+
+### 5. Progressive Web App (PWA) Funksjonalitet
+- Full PWA-implementering med norsk lokalisering
+- Service worker med smart caching og offline-funksjonalitet
+- Elegante installasjonsprompts
+- Offline-indikatorer
+- App-snarveier for rask tilgang
+- Dedikert offline-side med automatisk tilkobling
+
+### 6. Handleliste
+- Tilgjengelighetsregistrering
+- Histamin-advarsler for handleelementer
+- Integrasjon med godkjente matvarer
+
+## Tekniske Krav
+
+### Frontend:
+- React med TypeScript
+- Wouter for routing
+- Shadcn/ui komponenter basert på Radix UI
+- Tailwind CSS med MCAS-spesifikke fargevariabler
+- Mobile-first design
+- React Query for tilstandshåndtering
+
+### Backend:
+- Node.js med Express.js
+- TypeScript for fullstack type-sikkerhet
+- RESTful API design
+- Passport.js autentisering med lokal strategi
+- Scrypt passord-hashing
+
+### Database:
+- PostgreSQL som primær datalagring
+- Drizzle ORM for type-sikre database-operasjoner
+- Omfattende skjema for brukere, mat, tilskudd, helse og symptomer
+- PostgreSQL-basert sesjonslagring
+
+### Eksterne Avhengigheter:
+- OpenFoodFacts API (fullt integrert)
+- Fooddata.dk integrasjon (1370 norske/danske matvarer)
+- OpenAI API for oppskriftgenerering (krever bruker API-nøkkel)
+
+## Brukerpreferanser og Kommunikasjon
+- **Språk:** Norsk (brukergrensesnitt og kommunikasjon)
+- **Kommunikasjonsstil:** Enkelt, hverdagslig språk
+- **Design:** Mobil-først tilnærming med responsivt design
+- **Datafokus:** Kun autentiske data fra autoriserte kilder
+- **Brukervennlighet:** Intuitive kontroller med tydelige indikatorer
+
+## Spesifikke Implementasjonsdetaljer
+
+### Datamodell Prioriteringer:
+- Histamin-nivå klassifisering (906 lave, 99 medium, 365 høye matvarer)
+- Laboratoriedata med 200+ parametre per matvare
+- Komplette biogene aminer-paneler med klinisk risikovurdering
+- Dato-basert korrelasjonssporing for symptom-identifikasjon
+
+### AI-optimalisering:
+- Bytte fra gpt-4o til gpt-4o-mini for kostnadseffektivitet
+- Beholde oppskriftskvalitet med egendefinerte forespørsler
+- Smart parsing-system for instruksjonsformatering
+
+### Brukeropplevelse:
+- Fargekodet risiko-indikatorer for histamin-nivåer
+- Nummererte trinn med visuelle merker for oppskrifter
+- Automatisk norsk oversettelse for dansk matdata
+- Offline-funksjonalitet med bakgrunnssynkronisering
+
+## Siste Utvidelse (Januar 2025)
+Transformasjon fra enkel matdagbok til omfattende helsedagbok med:
+- Supplement-sporing med dosering og tidspunkt
+- Daglige helsemetrikker (søvn, energi, stress, humør)
+- Utvidet symptomregistrering med utløser-identifikasjon
+- Integrert oversiktsvisning for helhetlig helseoppfølging
+- Korrelasjonsdata for å identifisere forbedring/forverring av symptomer
+
+## Målgruppe
+MCAS-pasienter og familier som trenger:
+- Detaljert matsporing med histamin-fokus
+- Symptom-korrellasjon med kosthold og livsstil
+- Trygg oppskriftgenerering basert på godkjente ingredienser
+- Mobil-tilgjengelig sporing for daglig bruk
+- Offline-funksjonalitet for kontinuerlig bruk
