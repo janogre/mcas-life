@@ -4,6 +4,7 @@ import {
   Home, 
   AlertCircle, 
   Search, 
+  BookOpen,
   Brain,
   User
 } from 'lucide-react';
@@ -26,9 +27,9 @@ const navigationItems = [
     icon: Search,
   },
   {
-    name: 'AI Analysis',
-    href: '/analytics',
-    icon: Brain,
+    name: 'Diary',
+    href: '/diary',
+    icon: BookOpen,
   },
   {
     name: 'Profile',

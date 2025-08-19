@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Heart, AlertTriangle, CheckCircle, XCircle, WifiOff } from 'lucide-react';
+import { Search, Filter, Heart, AlertTriangle, CheckCircle, XCircle, WifiOff, Plus } from 'lucide-react';
 import { useApiCall } from '../../hooks/useAsync';
 import { useOfflineData } from '../../hooks/useOfflineData';
-import { foodApi } from '../../lib/api';
+import { foodApi, diaryApi } from '../../lib/api';
 import { LoadingSpinner, SectionLoading } from '../../components/UI/LoadingSpinner';
 import { ErrorDisplay, NetworkError } from '../../components/UI/ErrorDisplay';
 import type { Food, FoodSearchRequest } from '../../types/shared';
@@ -15,9 +15,9 @@ const COMPATIBILITY_LABELS = {
 };
 
 interface SearchFilters {
-  compatibility?: number[];
-  category?: string[];
-  triggers?: string[];
+  compatibility?: number;
+  category?: string;
+  triggers?: string;
 }
 
 export function FoodSearchPage() {
@@ -50,12 +50,16 @@ export function FoodSearchPage() {
     return () => clearTimeout(debounceTimer);
   }, [searchTerm]);
 
-  const handleSearch = async () => {
+  const handleSearch = async (customFilters?: SearchFilters) => {
+    const activeFilters = customFilters || filters;
     const searchParams: FoodSearchRequest = {
       query: searchTerm.trim(),
       limit: 20,
       offset: 0,
-      ...filters
+      // Map filters to the correct format
+      compatibility_filter: activeFilters.compatibility,
+      category_filter: activeFilters.category,
+      trigger_filter: activeFilters.triggers
     };
 
     if (isOnline) {
@@ -81,13 +85,35 @@ export function FoodSearchPage() {
   const handleFilterChange = (newFilters: SearchFilters) => {
     setFilters(newFilters);
     if (searchTerm.trim()) {
-      handleSearch();
+      handleSearch(newFilters);
     }
   };
 
   const clearSearch = () => {
     setSearchTerm('');
     setFilters({});
+  };
+
+  const addToDiary = async (food: Food) => {
+    try {
+      await diaryApi.createEntry({
+        type: 'meal',
+        data: {
+          foods: [{
+            sighi_id: food.id,
+            name: food.name_en || food.name_no,
+            amount: '',
+            unit: ''
+          }]
+        }
+      });
+      
+      // Show success message (you could use a toast notification here)
+      alert(`${food.name_en || food.name_no} added to diary!`);
+    } catch (error) {
+      console.error('Failed to add food to diary:', error);
+      alert('Failed to add food to diary. Please try again.');
+    }
   };
 
   const FoodCard = ({ food }: { food: Food }) => {
@@ -139,8 +165,12 @@ export function FoodSearchPage() {
         )}
 
         <div className="mt-3 flex justify-between items-center">
-          <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-            Add to Diary
+          <button 
+            onClick={() => addToDiary(food)}
+            className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 text-sm font-medium hover:bg-primary-50 px-2 py-1 rounded transition-colors"
+          >
+            <Plus className="w-3 h-3" />
+            <span>Add to Diary</span>
           </button>
           <button className="text-gray-500 hover:text-gray-700">
             <Heart className="w-4 h-4" />
@@ -165,14 +195,12 @@ export function FoodSearchPage() {
               key={level}
               onClick={() => {
                 const numLevel = parseInt(level);
-                const newCompatibility = filters.compatibility?.includes(numLevel)
-                  ? filters.compatibility.filter(c => c !== numLevel)
-                  : [...(filters.compatibility || []), numLevel];
+                const newCompatibility = filters.compatibility === numLevel ? undefined : numLevel;
                 
                 handleFilterChange({ ...filters, compatibility: newCompatibility });
               }}
               className={`px-3 py-2 rounded-full text-sm font-medium border transition-colors ${
-                filters.compatibility?.includes(parseInt(level))
+                filters.compatibility === parseInt(level)
                   ? `${info.bgColor} ${info.color} border-current`
                   : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
               }`}
@@ -226,9 +254,9 @@ export function FoodSearchPage() {
           >
             <Filter className="w-4 h-4" />
             <span>Filters</span>
-            {Object.keys(filters).length > 0 && (
+            {Object.values(filters).some(v => v !== undefined) && (
               <span className="bg-primary-100 text-primary-800 px-2 py-0.5 rounded-full text-xs">
-                {Object.values(filters).flat().length}
+                {Object.values(filters).filter(v => v !== undefined).length}
               </span>
             )}
           </button>

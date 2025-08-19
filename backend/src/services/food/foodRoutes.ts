@@ -12,7 +12,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import { foodService } from './foodService.js';
-import { authMiddleware, requireRole, requireAuth } from '../auth/authMiddleware.js';
+import { authenticateToken, requireRole } from '../auth/authMiddleware.js';
 import type { 
   FoodSearchRequest, 
   BulkFoodImportRequest,
@@ -70,6 +70,52 @@ const BulkImportSchema = z.object({
     remarks_en: z.string().optional()
   })).min(1).max(1000),
   overwrite_existing: z.boolean().optional()
+});
+
+/**
+ * GET /api/foods - Legacy compatibility route
+ * Handles old frontend requests and translates to new format
+ */
+router.get('/foods', searchRateLimit, async (req, res) => {
+  try {
+    // Translate legacy parameters to new format
+    const translatedQuery = {
+      query: req.query.search as string || req.query.q as string,
+      compatibility_filter: req.query.compatibility ? parseInt(req.query.compatibility as string) : undefined,
+      category_filter: req.query.category as string,
+      trigger_filter: req.query.triggers as string,
+      limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
+      page: req.query.page ? parseInt(req.query.page as string) : 1
+    };
+
+    // Validate translated parameters
+    const validation = FoodSearchSchema.safeParse(translatedQuery);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: 'Invalid search parameters',
+        details: validation.error.errors
+      });
+    }
+
+    const searchRequest: FoodSearchRequest = {
+      ...validation.data,
+      user_id: req.user?.userId
+    };
+
+    const result = await foodService.searchFoods(searchRequest);
+
+    res.json({
+      success: true,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Food search error:', error);
+    res.status(500).json({
+      error: 'Failed to search foods',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 });
 
 /**
@@ -230,7 +276,7 @@ router.get('/statistics', async (req, res) => {
  * Get user's approved foods
  * Requires authentication
  */
-router.get('/approved', requireAuth, async (req, res) => {
+router.get('/approved', authenticateToken, async (req, res) => {
   try {
     const userId = req.user!.userId;
     const approvedFoods = await foodService.getUserApprovedFoods(userId);
@@ -254,7 +300,7 @@ router.get('/approved', requireAuth, async (req, res) => {
  * Add new user-approved food
  * Requires authentication
  */
-router.post('/approved', requireAuth, async (req, res) => {
+router.post('/approved', authenticateToken, async (req, res) => {
   try {
     const validation = ApprovedFoodSchema.safeParse(req.body);
     if (!validation.success) {
@@ -286,7 +332,7 @@ router.post('/approved', requireAuth, async (req, res) => {
  * Update user-approved food
  * Requires authentication
  */
-router.put('/approved/:id', requireAuth, async (req, res) => {
+router.put('/approved/:id', authenticateToken, async (req, res) => {
   try {
     const approvedFoodId = parseInt(req.params.id);
     if (isNaN(approvedFoodId)) {

@@ -8,9 +8,14 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema.js';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // Environment variables for database configuration
 const DATABASE_URL = process.env['DATABASE_URL'] || 'postgresql://localhost:5432/mcas_life';
+console.log('🔍 DATABASE_URL loaded:', DATABASE_URL);
 const DATABASE_SSL = process.env['NODE_ENV'] === 'production';
 const DATABASE_MAX_CONNECTIONS = parseInt(process.env['DATABASE_MAX_CONNECTIONS'] || '10');
 const DATABASE_IDLE_TIMEOUT = parseInt(process.env['DATABASE_IDLE_TIMEOUT'] || '30');

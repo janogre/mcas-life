@@ -11,7 +11,7 @@
  */
 
 import * as bcrypt from 'bcrypt';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { users, mcasProfiles, userPreferences, userSessions } from '../../db/schema.js';
@@ -27,7 +27,7 @@ import type {
 
 // Environment variables with safe defaults for development
 const JWT_SECRET = process.env['JWT_SECRET'] || 'dev-secret-change-in-production';
-const JWT_EXPIRES_IN = process.env['JWT_EXPIRES_IN'] || '15m';
+const JWT_EXPIRES_IN = process.env['JWT_EXPIRES_IN'] || '4h';
 const REFRESH_TOKEN_EXPIRES_IN = process.env['REFRESH_TOKEN_EXPIRES_IN'] || '7d';
 const BCRYPT_ROUNDS = parseInt(process.env['BCRYPT_ROUNDS'] || '12');
 
@@ -322,8 +322,11 @@ export class AuthService {
   async refreshToken(refreshToken: string): Promise<AuthTokens> {
     
     try {
+      console.log('🔄 Attempting token refresh...');
+      
       // Verify refresh token
       const decoded = jwt.verify(refreshToken, JWT_SECRET) as any;
+      console.log('✅ Refresh token JWT valid, userId:', decoded.userId);
       
       if (decoded.type !== 'refresh') {
         throw new Error('Invalid token type');
@@ -360,14 +363,33 @@ export class AuthService {
         ))
         .limit(1);
 
+      console.log('🔍 Session lookup result:', session ? 'Found' : 'Not found');
+
       if (!session) {
         throw new Error('Invalid or expired session');
       }
 
       // Generate new tokens
-      return this.generateTokens(user.id, user.email, user.role);
+      const newTokens = this.generateTokens(user.id, user.email, user.role);
+      
+      // Update session with new refresh token
+      await db
+        .update(userSessions)
+        .set({ 
+          id: newTokens.refresh_token,
+          last_activity: new Date(),
+          expires_at: new Date(Date.now() + this.parseExpirationTime(REFRESH_TOKEN_EXPIRES_IN) * 1000)
+        })
+        .where(and(
+          eq(userSessions.id, refreshToken),
+          eq(userSessions.user_id, user.id)
+        ));
+      
+      return newTokens;
 
     } catch (error) {
+      console.error('❌ Token refresh failed:', error.message);
+      console.error('🔍 Refresh token:', refreshToken ? refreshToken.substring(0, 50) + '...' : 'null');
       throw new Error('Invalid or expired refresh token');
     }
   }

@@ -84,19 +84,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuthStatus = async () => {
     const token = localStorage.getItem('authToken');
-    if (!token) {
-      dispatch({ type: 'AUTH_FAILURE', payload: 'No token found' });
+    const refreshToken = localStorage.getItem('refreshToken');
+    
+    if (!token && !refreshToken) {
+      // No tokens at all - just mark as not authenticated
+      dispatch({ type: 'LOGOUT' });
       return;
     }
 
     try {
       dispatch({ type: 'AUTH_START' });
+      
+      // Try to get profile with current token
       const response = await authApi.getProfile();
       dispatch({ type: 'AUTH_SUCCESS', payload: response.data });
     } catch (error) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('refreshToken');
-      dispatch({ type: 'AUTH_FAILURE', payload: 'Invalid token' });
+      // Token is invalid/expired, but we have automatic refresh in API interceptor
+      // so if refresh token is valid, it should work automatically
+      // If both tokens are invalid, API interceptor will redirect to login
+      
+      if (refreshToken) {
+        try {
+          // Try one more time - the API interceptor should handle refresh
+          const response = await authApi.getProfile();
+          dispatch({ type: 'AUTH_SUCCESS', payload: response.data });
+        } catch (secondError) {
+          // Both tokens are invalid
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('refreshToken');
+          dispatch({ type: 'LOGOUT' });
+        }
+      } else {
+        localStorage.removeItem('authToken');
+        dispatch({ type: 'LOGOUT' });
+      }
     }
   };
 
@@ -105,8 +126,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'AUTH_START' });
       const response = await authApi.login({ email, password });
       
-      localStorage.setItem('authToken', response.data.access_token);
-      localStorage.setItem('refreshToken', response.data.refresh_token);
+      localStorage.setItem('authToken', response.data.tokens.access_token);
+      localStorage.setItem('refreshToken', response.data.tokens.refresh_token);
       
       dispatch({ type: 'AUTH_SUCCESS', payload: response.data.user });
     } catch (error: any) {
@@ -121,8 +142,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'AUTH_START' });
       const response = await authApi.register(userData);
       
-      localStorage.setItem('authToken', response.data.access_token);
-      localStorage.setItem('refreshToken', response.data.refresh_token);
+      localStorage.setItem('authToken', response.data.tokens.access_token);
+      localStorage.setItem('refreshToken', response.data.tokens.refresh_token);
       
       dispatch({ type: 'AUTH_SUCCESS', payload: response.data.user });
     } catch (error: any) {

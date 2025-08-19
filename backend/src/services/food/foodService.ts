@@ -60,12 +60,13 @@ export class FoodService {
     // Build where conditions
     const conditions = [];
 
-    // Text search in Norwegian and English names
+    // Text search in Norwegian and English names (case-insensitive)
     if (query) {
+      const searchTerm = query.toLowerCase();
       conditions.push(
         or(
-          like(foods.name_no, `%${query}%`),
-          like(foods.name_en, `%${query}%`)
+          sql`LOWER(${foods.name_no}) LIKE ${`%${searchTerm}%`}`,
+          sql`LOWER(${foods.name_en}) LIKE ${`%${searchTerm}%`}`
         )
       );
     }

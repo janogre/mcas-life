@@ -9,15 +9,19 @@ import { cn } from '../../lib/utils';
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
+  username: z.string().min(3, 'Username must be at least 3 characters').max(30, 'Username too long'),
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase, and number'),
   confirmPassword: z.string(),
   first_name: z.string().min(1, 'First name is required').max(50, 'First name too long'),
   last_name: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
+  timezone: z.string().min(1, 'Timezone is required'),
+  language: z.enum(['no', 'en', 'da', 'sv']),
   mcas_severity: z.enum(['mild', 'moderate', 'severe']),
   confirmed_diagnosis: z.boolean(),
-  agree_terms: z.boolean().refine(val => val === true, 'You must agree to the terms'),
+  accept_terms: z.boolean().refine(val => val === true, 'You must accept terms of service'),
+  accept_privacy: z.boolean().refine(val => val === true, 'You must accept privacy policy'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -39,9 +43,12 @@ export function RegisterPage() {
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Oslo',
+      language: 'no',
       mcas_severity: 'moderate',
       confirmed_diagnosis: false,
-      agree_terms: false,
+      accept_terms: false,
+      accept_privacy: false,
     },
   });
 
@@ -52,11 +59,16 @@ export function RegisterPage() {
       clearError();
       await registerUser({
         email: data.email,
+        username: data.username,
         password: data.password,
         first_name: data.first_name,
         last_name: data.last_name,
+        timezone: data.timezone,
+        language: data.language,
         mcas_severity: data.mcas_severity,
         confirmed_diagnosis: data.confirmed_diagnosis,
+        accept_terms: data.accept_terms,
+        accept_privacy: data.accept_privacy,
       });
       navigate('/dashboard');
     } catch (error) {
@@ -184,6 +196,27 @@ export function RegisterPage() {
               )}
             </div>
 
+            {/* Username */}
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                Username
+              </label>
+              <input
+                {...register('username')}
+                type="text"
+                id="username"
+                className={cn(
+                  'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors',
+                  errors.username && 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                )}
+                placeholder="Choose a unique username"
+                disabled={isSubmitting || isLoading}
+              />
+              {errors.username && (
+                <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
+              )}
+            </div>
+
             {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
@@ -278,6 +311,52 @@ export function RegisterPage() {
               )}
             </div>
 
+            {/* Language and Timezone */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-2">
+                  Language / Språk
+                </label>
+                <select
+                  {...register('language')}
+                  id="language"
+                  className={cn(
+                    'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors',
+                    errors.language && 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                  )}
+                  disabled={isSubmitting || isLoading}
+                >
+                  <option value="no">Norsk</option>
+                  <option value="en">English</option>
+                  <option value="da">Dansk</option>
+                  <option value="sv">Svenska</option>
+                </select>
+                {errors.language && (
+                  <p className="mt-1 text-sm text-red-600">{errors.language.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Timezone
+                </label>
+                <input
+                  {...register('timezone')}
+                  type="text"
+                  id="timezone"
+                  className={cn(
+                    'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors',
+                    errors.timezone && 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                  )}
+                  placeholder="Europe/Oslo"
+                  disabled={isSubmitting || isLoading}
+                />
+                {errors.timezone && (
+                  <p className="mt-1 text-sm text-red-600">{errors.timezone.message}</p>
+                )}
+              </div>
+            </div>
+
             {/* MCAS Information */}
             <div className="bg-primary-50 rounded-lg p-4 space-y-4">
               <h3 className="text-lg font-medium text-gray-900">MCAS Information</h3>
@@ -317,28 +396,45 @@ export function RegisterPage() {
             </div>
 
             {/* Terms Agreement */}
-            <div className="flex items-start space-x-3">
-              <input
-                {...register('agree_terms')}
-                type="checkbox"
-                id="agree_terms"
-                className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                disabled={isSubmitting || isLoading}
-              />
-              <label htmlFor="agree_terms" className="text-sm text-gray-700">
-                I agree to the{' '}
-                <Link to="/terms" className="text-primary-600 hover:text-primary-700">
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link to="/privacy" className="text-primary-600 hover:text-primary-700">
-                  Privacy Policy
-                </Link>
-              </label>
+            <div className="space-y-3">
+              <div className="flex items-start space-x-3">
+                <input
+                  {...register('accept_terms')}
+                  type="checkbox"
+                  id="accept_terms"
+                  className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                  disabled={isSubmitting || isLoading}
+                />
+                <label htmlFor="accept_terms" className="text-sm text-gray-700">
+                  I agree to the{' '}
+                  <Link to="/terms" className="text-primary-600 hover:text-primary-700">
+                    Terms of Service
+                  </Link>
+                </label>
+              </div>
+              {errors.accept_terms && (
+                <p className="text-sm text-red-600">{errors.accept_terms.message}</p>
+              )}
+
+              <div className="flex items-start space-x-3">
+                <input
+                  {...register('accept_privacy')}
+                  type="checkbox"
+                  id="accept_privacy"
+                  className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                  disabled={isSubmitting || isLoading}
+                />
+                <label htmlFor="accept_privacy" className="text-sm text-gray-700">
+                  I agree to the{' '}
+                  <Link to="/privacy" className="text-primary-600 hover:text-primary-700">
+                    Privacy Policy
+                  </Link>
+                </label>
+              </div>
+              {errors.accept_privacy && (
+                <p className="text-sm text-red-600">{errors.accept_privacy.message}</p>
+              )}
             </div>
-            {errors.agree_terms && (
-              <p className="text-sm text-red-600">{errors.agree_terms.message}</p>
-            )}
 
             {/* Submit Button */}
             <button

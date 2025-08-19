@@ -9,6 +9,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 // Import services (new microservices architecture)
 import { authRoutes, authenticateToken } from './services/auth/index.js';
+import { foodRoutes } from './services/food/foodRoutes.js';
 
 // Import legacy routes (to be migrated to services)
 import { sighiRoutes } from './routes/sighi.js';
@@ -73,7 +74,7 @@ app.use('/api/health', healthRoutes);
 
 // API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/sighi', sighiRoutes);
+app.use('/api/sighi', foodRoutes); // Use new food service instead of legacy sighi routes
 app.use('/api/diary', authenticateToken, diaryRoutes);
 app.use('/api/users', authenticateToken, usersRoutes);
 

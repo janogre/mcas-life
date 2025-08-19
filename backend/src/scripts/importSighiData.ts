@@ -10,7 +10,7 @@ import * as path from 'path';
 import { foodService } from '../services/food/foodService.js';
 
 // Path to MCAS-search project data
-const MCAS_SEARCH_PATH = path.join(process.cwd(), '..', 'MCAS-search');
+const MCAS_SEARCH_PATH = path.join(process.cwd(), '..', '..', 'MCAS-search');
 const SERVER_JS_FILE = path.join(MCAS_SEARCH_PATH, 'server.js');
 
 console.log('🍎 MCAS-Life SIGHI Data Import (from server.js)');

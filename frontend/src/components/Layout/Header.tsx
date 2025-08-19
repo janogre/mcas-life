@@ -57,6 +57,12 @@ export function Header() {
               Food Search
             </Link>
             <Link 
+              to="/diary" 
+              className="text-gray-600 hover:text-primary-600 font-medium transition-colors"
+            >
+              Diary
+            </Link>
+            <Link 
               to="/analytics" 
               className="text-gray-600 hover:text-primary-600 font-medium transition-colors"
             >
@@ -148,6 +154,13 @@ export function Header() {
                 onClick={() => setShowMobileMenu(false)}
               >
                 Food Search
+              </Link>
+              <Link 
+                to="/diary" 
+                className="px-4 py-2 text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                Diary
               </Link>
               <Link 
                 to="/analytics" 

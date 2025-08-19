@@ -17,6 +17,7 @@ import { SymptomLogPage } from './pages/Symptoms/SymptomLogPage';
 import { FoodSearchPage } from './pages/Foods/FoodSearchPage';
 import { AnalyticsPage } from './pages/Analytics/AnalyticsPage';
 import { ProfilePage } from './pages/Profile/ProfilePage';
+import { DiaryPage } from './pages/Diary/DiaryPage';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -71,6 +72,16 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <FoodSearchPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/diary"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <DiaryPage />
                     </Layout>
                   </ProtectedRoute>
                 }

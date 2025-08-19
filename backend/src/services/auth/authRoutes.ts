@@ -207,6 +207,8 @@ router.post('/refresh', async (req: Request, res: Response) => {
 
     const { refresh_token } = validationResult.data;
 
+    console.log('🔄 Refresh request received with token:', refresh_token ? refresh_token.substring(0, 50) + '...' : 'null');
+
     // Refresh tokens
     const newTokens = await authService.refreshToken(refresh_token);
 

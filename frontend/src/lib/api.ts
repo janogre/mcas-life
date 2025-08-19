@@ -27,13 +27,40 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor for error handling
+// Response interceptor for error handling and token refresh
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+    
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        try {
+          // Direct refresh call to avoid circular dependency
+          const refreshResponse = await axios.post(`${import.meta.env.VITE_API_URL}/auth/refresh`, 
+            { refresh_token: refreshToken }
+          );
+          
+          localStorage.setItem('authToken', refreshResponse.data.data.access_token);
+          localStorage.setItem('refreshToken', refreshResponse.data.data.refresh_token);
+          
+          // Retry original request with new token
+          originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.data.access_token}`;
+          return api(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed, redirect to login
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('refreshToken');
+          window.location.href = '/login';
+        }
+      } else {
+        // No refresh token, redirect to login
+        localStorage.removeItem('authToken');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -99,6 +126,9 @@ export const foodApi = {
     if (searchRequest.limit) params.limit = searchRequest.limit;
     if (searchRequest.offset) params.offset = searchRequest.offset;
     if (searchRequest.query) params.search = searchRequest.query;
+    if (searchRequest.compatibility_filter !== undefined) params.compatibility = searchRequest.compatibility_filter;
+    if (searchRequest.category_filter) params.category = searchRequest.category_filter;
+    if (searchRequest.trigger_filter) params.triggers = searchRequest.trigger_filter;
     
     const response = await api.get('/sighi/foods', { params });
     return response.data.data;
@@ -212,6 +242,65 @@ export const healthApi = {
 
   getWeeklyReport: async (startDate: string) => {
     const response = await api.get(`/health/report/weekly?start=${startDate}`);
+    return response.data.data;
+  },
+};
+
+// Diary API
+export const diaryApi = {
+  getEntries: async (params?: {
+    type?: string;
+    date?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const response = await api.get('/diary/entries', { params });
+    return response.data.data;
+  },
+
+  createEntry: async (entry: {
+    type: 'meal' | 'symptom' | 'supplement' | 'health_metric';
+    timestamp?: string;
+    data: {
+      foods?: Array<{
+        sighi_id?: number;
+        name: string;
+        amount?: string;
+        unit?: string;
+      }>;
+      symptom_type?: string;
+      severity?: number;
+      duration_minutes?: number;
+      description?: string;
+      supplement_name?: string;
+      dosage?: string;
+      supplement_type?: string;
+      metric_type?: 'sleep' | 'energy' | 'stress' | 'mood' | 'general_wellbeing';
+      value?: number;
+      notes?: string;
+    };
+  }) => {
+    const response = await api.post('/diary/entries', entry);
+    return response.data.data;
+  },
+
+  getEntry: async (id: string) => {
+    const response = await api.get(`/diary/entries/${id}`);
+    return response.data.data;
+  },
+
+  updateEntry: async (id: string, entry: any) => {
+    const response = await api.put(`/diary/entries/${id}`, entry);
+    return response.data.data;
+  },
+
+  deleteEntry: async (id: string) => {
+    const response = await api.delete(`/diary/entries/${id}`);
+    return response.data;
+  },
+
+  getStatistics: async () => {
+    const response = await api.get('/diary/statistics');
     return response.data.data;
   },
 };
