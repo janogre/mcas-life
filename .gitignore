@@ -146,3 +146,6 @@ backups/
 
 # Application uploads
 uploads/
+# Temporary and sensitive files
+cookies.txt
+nul
