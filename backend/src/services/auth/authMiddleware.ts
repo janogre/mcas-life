@@ -262,7 +262,7 @@ export function authenticateApiKey(
  */
 const userRequestCounts = new Map<number, { count: number; resetTime: number }>();
 
-export function rateLimitByUser(maxRequests: number = 100, windowMs: number = 15 * 60 * 1000) {
+export function rateLimitByUser(maxRequests: number = 5000, windowMs: number = 15 * 60 * 1000) {
   return (req: Request, res: Response, next: NextFunction): void => {
     
     if (!req.user) {

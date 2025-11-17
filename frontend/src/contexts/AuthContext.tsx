@@ -126,6 +126,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'AUTH_START' });
       const response = await authApi.login({ email, password });
       
+      console.log('🎯 Full response from authApi.login:', response);
+      console.log('🔑 Tokens:', response.data?.tokens);
+      console.log('👤 User:', response.data?.user);
+      
+      if (!response.data?.tokens || !response.data?.user) {
+        throw new Error('Invalid response structure from server');
+      }
+      
       localStorage.setItem('authToken', response.data.tokens.access_token);
       localStorage.setItem('refreshToken', response.data.tokens.refresh_token);
       
@@ -141,6 +149,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       dispatch({ type: 'AUTH_START' });
       const response = await authApi.register(userData);
+      
+      if (!response.data?.tokens || !response.data?.user) {
+        throw new Error('Invalid response structure from server');
+      }
       
       localStorage.setItem('authToken', response.data.tokens.access_token);
       localStorage.setItem('refreshToken', response.data.tokens.refresh_token);

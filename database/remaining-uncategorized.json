@@ -1,0 +1,376 @@
+[
+  {
+    "id": 100,
+    "name_en": "bulgur, burghul, riffoth",
+    "name_no": "Bulgur, burghul, riffoth",
+    "compatibility": 1,
+    "triggers": []
+  },
+  {
+    "id": 101,
+    "name_en": "cassava, manioc (root tubers)",
+    "name_no": "Kassava, maniok (root tubers)",
+    "triggers": []
+  },
+  {
+    "id": 113,
+    "name_en": "manioc, cassava (root tubers)",
+    "name_no": "Maniok, kassava (root tubers)",
+    "triggers": []
+  },
+  {
+    "id": 130,
+    "name_en": "tapioca starch",
+    "name_no": "Tapioka starch",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 144,
+    "name_en": "pecan nut",
+    "name_no": "Pecan nut",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 153,
+    "name_en": "common evening-primrose oil (Oenothera biennis)",
+    "name_no": "Common evening-primrose oil (oenothera biennis)",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 156,
+    "name_en": "evening primrose oil (Oenothera biennis)",
+    "name_no": "Nattlysolje (oenothera biennis)",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 158,
+    "name_en": "flaxseed oil, flax oil, linseed oil",
+    "name_no": "Linfrøolje, linfrø oil, linfrøolje",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 159,
+    "name_en": "linseed oil, flaxseed oil, flax oil",
+    "name_no": "Linfrøolje, linfrøolje, linfrø oil",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 166,
+    "name_en": "primrose oil (Oenothera biennis)",
+    "name_no": "Primrose oil (oenothera biennis)",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 185,
+    "name_en": "bok choy",
+    "name_no": "Bok choy",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 225,
+    "name_en": "ladies’ fingers, okra, ochro",
+    "name_no": "Ladies’ fingers, okra, ochro",
+    "compatibility": 1,
+    "triggers": []
+  },
+  {
+    "id": 237,
+    "name_en": "okra, okro, ochro, ladies’ fingers",
+    "name_no": "Okra, okro, ochro, ladies’ fingers",
+    "compatibility": 1,
+    "triggers": []
+  },
+  {
+    "id": 248,
+    "name_en": "pok choi",
+    "name_no": "Pok choi",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 334,
+    "name_en": "elderberry, elderberries",
+    "name_no": "Hyllebær, elderberries",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 363,
+    "name_en": "? naspati (Pyrus pyrifolia)",
+    "name_no": "? naspati (pyrus pyrifolia)",
+    "triggers": []
+  },
+  {
+    "id": 397,
+    "name_en": "Solanum muricatum, pepino, pepino dulce, pepino",
+    "name_no": "Solanum muricatum, pepino, pepino dulce, pepino",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 411,
+    "name_en": "flax seeds",
+    "name_no": "Linfrø seeds",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 423,
+    "name_en": "lingzhi, Ganoderma lingzhi, reishi",
+    "name_no": "Lingzhi, ganoderma lingzhi, reishi",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 429,
+    "name_en": "reishi, lingzhi, Ganoderma lingzhi",
+    "name_no": "Reishi, lingzhi, ganoderma lingzhi",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 432,
+    "name_en": "spirulina (Arthrospira)",
+    "name_no": "Spirulina (arthrospira)",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 491,
+    "name_en": "Rhus coriaria, Sicilian sumac, tanner’s sumach, elm-",
+    "name_no": "Rhus coriaria, sicilian sumak, tanner’s sumach, elm-",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 497,
+    "name_en": "sumac, sumach, Sicilian sumac, Rhus coraria",
+    "name_no": "Sumak, sumach, sicilian sumak, rhus coraria",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 591,
+    "name_en": "Brilliant Black BN, Brilliant Black PN, Brilliant Black",
+    "name_no": "Brilliant svart bn, brilliant svart pn, brilliant svart",
+    "compatibility": 3,
+    "triggers": [
+      "L"
+    ]
+  },
+  {
+    "id": 616,
+    "name_en": "canthaxanthin, cantaxanthin, cantaxanthine,",
+    "name_no": "Canthaxanthin, cantaxanthin, cantaxanthine",
+    "triggers": []
+  },
+  {
+    "id": 620,
+    "name_en": "carboxymethyl cellulose, CMC,",
+    "name_no": "Carboxymethyl cellulose, cmc",
+    "triggers": []
+  },
+  {
+    "id": 623,
+    "name_en": "carob, carob powder, carob pod meal",
+    "name_no": "Carob, carob powder, carob pod meal",
+    "compatibility": 2,
+    "triggers": []
+  },
+  {
+    "id": 629,
+    "name_en": "cellulose ethyl ether, ethyl cellulose, ethylcellulose,",
+    "name_no": "Cellulose ethyl ether, ethyl cellulose, ethylcellulose",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 630,
+    "name_en": "cellulose methyl ether, methyl cellulose,",
+    "name_no": "Cellulose methyl ether, methyl cellulose",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 644,
+    "name_en": "dimethicone, dimethylpolysiloxane,",
+    "name_no": "Dimethicone, dimethylpolysiloxane",
+    "triggers": []
+  },
+  {
+    "id": 817,
+    "name_en": "fizzy drinks",
+    "name_no": "Fizzy drinks",
+    "compatibility": 1,
+    "triggers": [
+      "L"
+    ]
+  },
+  {
+    "id": 820,
+    "name_en": "flavourings, flavorings",
+    "name_no": "Flavourings, flavorings",
+    "compatibility": 1,
+    "triggers": []
+  },
+  {
+    "id": 843,
+    "name_en": "hypromellose, hydroxypropyl methylcellulose,",
+    "name_no": "Hypromellose, hydroxypropyl methylcellulose",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 849,
+    "name_en": "Kolliphorﬁ EL, Cremophor EL, Macrogolglycerol",
+    "name_no": "Kolliphorﬁ el, cremophor el, macrogolglycerol",
+    "triggers": []
+  },
+  {
+    "id": 861,
+    "name_en": "? menthol",
+    "name_no": "? menthol",
+    "compatibility": 1,
+    "triggers": []
+  },
+  {
+    "id": 865,
+    "name_en": "modified starch, starch derivatives",
+    "name_no": "Modified starch, starch derivatives",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 885,
+    "name_en": "polydimethylsiloxane, PDMS, dimethicone,",
+    "name_no": "Polydimethylsiloxane, pdms, dimethicone",
+    "triggers": []
+  },
+  {
+    "id": 912,
+    "name_en": "Red 2G, acid red 1, azogeranine, azohpoloxine, E128",
+    "name_no": "Rød 2g, acid rød 1, azogeranine, azohpoloxine, e128",
+    "compatibility": 2,
+    "triggers": [
+      "L"
+    ]
+  },
+  {
+    "id": 914,
+    "name_en": "salicylic acid",
+    "name_no": "salicylic acid",
+    "compatibility": 2,
+    "triggers": [
+      "L"
+    ]
+  },
+  {
+    "id": 916,
+    "name_en": "Soapwort extract (Saponaria) in Halva",
+    "name_no": "Soapwort extract (saponaria) in halva",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 941,
+    "name_en": "starch derivatives, modified starch",
+    "name_no": "Starch derivatives, modified starch",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 942,
+    "name_en": "starch, amylum",
+    "name_no": "Starch, amylum",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 961,
+    "name_en": "vanillin (synthetic)",
+    "name_no": "Vanillin (synthetic)",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 969,
+    "name_en": "calcium",
+    "name_no": "Calcium",
+    "compatibility": 1,
+    "triggers": []
+  },
+  {
+    "id": 970,
+    "name_en": "calcium",
+    "name_no": "Calcium",
+    "compatibility": 1,
+    "triggers": []
+  },
+  {
+    "id": 971,
+    "name_en": "fir shoot, fir buds",
+    "name_no": "Fir shoot, fir buds",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 972,
+    "name_en": "guaranÆ (Paullinia cupana)",
+    "name_no": "Guaranæ (paullinia cupana)",
+    "compatibility": 2,
+    "triggers": [
+      "A",
+      "L"
+    ]
+  },
+  {
+    "id": 974,
+    "name_en": "iodized table salt",
+    "name_no": "Iodized table salt",
+    "compatibility": 2,
+    "triggers": [
+      "L"
+    ]
+  },
+  {
+    "id": 982,
+    "name_en": "kimchi",
+    "name_no": "Kimchi",
+    "compatibility": 2,
+    "triggers": []
+  },
+  {
+    "id": 988,
+    "name_en": "seitan",
+    "name_no": "Seitan",
+    "compatibility": 1,
+    "triggers": [
+      "H"
+    ]
+  },
+  {
+    "id": 996,
+    "name_en": "razil nut",
+    "name_no": "razil nut",
+    "compatibility": 0,
+    "triggers": []
+  },
+  {
+    "id": 1000,
+    "name_en": "L guaranÆ (Paullinia cupana)",
+    "name_no": "L guaranÆ (Paullinia cupana)",
+    "compatibility": 2,
+    "triggers": [
+      "A",
+      "L"
+    ]
+  }
+]

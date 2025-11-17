@@ -2,6 +2,7 @@
 // In a real implementation, this would import from @mcas-life/shared package
 
 export type SighiTrigger = 
+  | 'H!' // Highly perishable - rapid histamine formation
   | 'H'  // Histamine content
   | 'L'  // Histamine liberator  
   | 'A'  // DAO enzyme inhibitor (Alcohol, etc.)
@@ -12,6 +13,96 @@ export type SighiTrigger =
   | 'N'  // Noradrenaline/Norepinephrine
   | 'D'  // Dopamine
   | 'C'; // Choline
+
+// Norwegian trigger names for UI display
+export const SIGHI_TRIGGER_NAMES_NO: Record<SighiTrigger, string> = {
+  'H!': 'Lett bedervelig',
+  H: 'Histamin',
+  L: 'Histaminliberator', 
+  A: 'Andre aminer',
+  B: 'Biogene aminer',
+  S: 'Salicylater',
+  T: 'Tyramin',
+  P: 'Fenoliske forbindelser',
+  N: 'Naturlige forbindelser',
+  D: 'Fordøyelsesirritanter',
+  C: 'Kryssreaktive allergener'
+};
+
+// Trigger categories with colors for UI
+export const TRIGGER_DISPLAY: Record<SighiTrigger, { 
+  name: string; 
+  color: string; 
+  bgColor: string;
+  description: string;
+}> = {
+  'H!': { 
+    name: 'Lett bedervelig', 
+    color: 'text-red-800', 
+    bgColor: 'bg-red-200',
+    description: 'Lett bedervelig - rask histamindannelse'
+  },
+  H: { 
+    name: 'Histamin', 
+    color: 'text-red-700', 
+    bgColor: 'bg-red-100',
+    description: 'Inneholder histamin som kan utløse MCAS-symptomer'
+  },
+  L: { 
+    name: 'Histaminliberator', 
+    color: 'text-orange-700', 
+    bgColor: 'bg-orange-100',
+    description: 'Kan frigjøre histamin fra kroppens mastceller'
+  },
+  A: { 
+    name: 'Andre aminer', 
+    color: 'text-purple-700', 
+    bgColor: 'bg-purple-100',
+    description: 'Inneholder andre biogene aminer som kan være problematiske'
+  },
+  B: { 
+    name: 'Biogene aminer', 
+    color: 'text-pink-700', 
+    bgColor: 'bg-pink-100',
+    description: 'Inneholder biogene aminer som tyramin, phenylethylamin osv.'
+  },
+  S: { 
+    name: 'Salicylater', 
+    color: 'text-yellow-700', 
+    bgColor: 'bg-yellow-100',
+    description: 'Inneholder salicylater som kan forverre symptomer'
+  },
+  T: { 
+    name: 'Tyramin', 
+    color: 'text-indigo-700', 
+    bgColor: 'bg-indigo-100',
+    description: 'Høyt tyramininnhold'
+  },
+  P: { 
+    name: 'Fenoliske forbindelser', 
+    color: 'text-green-700', 
+    bgColor: 'bg-green-100',
+    description: 'Inneholder fenoliske forbindelser'
+  },
+  N: { 
+    name: 'Naturlige forbindelser', 
+    color: 'text-blue-700', 
+    bgColor: 'bg-blue-100',
+    description: 'Inneholder naturlige forbindelser som kan være triggere'
+  },
+  D: { 
+    name: 'Fordøyelsesirritanter', 
+    color: 'text-red-600', 
+    bgColor: 'bg-red-50',
+    description: 'Kan irritere fordøyelsessystemet'
+  },
+  C: { 
+    name: 'Kryssreaktive allergener', 
+    color: 'text-gray-700', 
+    bgColor: 'bg-gray-100',
+    description: 'Kan forårsake kryssreaktive allergiske reaksjoner'
+  }
+};
 
 export enum FoodCompatibility {
   SAFE = 0,           // Well tolerated, no symptoms expected at usual intake
@@ -87,6 +178,16 @@ export interface ApprovedFood {
   updated_at: Date;
 }
 
+export interface PersonalFoodRating {
+  id: number;
+  food_id: number;
+  user_id: number;
+  personal_rating: FoodCompatibility;
+  notes: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export interface TriggerAnalysisResult {
   analysis_confidence: number;
   data_quality_score: number;
@@ -127,4 +228,88 @@ export interface FoodSearchResponse {
     category: string | null;
     trigger: SighiTrigger | null;
   };
+}
+
+// ==================== RECIPE TYPES ====================
+
+export interface SpoonacularIngredient {
+  id: number;
+  name: string;
+  amount: number;
+  unit: string;
+  image: string;
+  original?: string;
+}
+
+export interface SpoonacularRecipe {
+  id: number;
+  title: string;
+  image: string;
+  imageType: string;
+  usedIngredientCount: number;
+  missedIngredientCount: number;
+  missedIngredients: SpoonacularIngredient[];
+  usedIngredients: SpoonacularIngredient[];
+  unusedIngredients: SpoonacularIngredient[];
+  likes: number;
+}
+
+export interface SpoonacularRecipeDetails extends SpoonacularRecipe {
+  readyInMinutes: number;
+  servings: number;
+  sourceUrl: string;
+  summary: string;
+  cuisines: string[];
+  dishTypes: string[];
+  diets: string[];
+  instructions: string;
+  analyzedInstructions: Array<{
+    name: string;
+    steps: Array<{
+      number: number;
+      step: string;
+      ingredients: Array<{ id: number; name: string; }>;
+      equipment: Array<{ id: number; name: string; }>;
+    }>;
+  }>;
+  extendedIngredients: SpoonacularIngredient[];
+}
+
+export type RecipeSafetyLevel = 'safe' | 'caution' | 'risky' | 'unsafe';
+
+export interface McasRecipe extends SpoonacularRecipe {
+  mcasScore: number; // 0-100, higher is safer
+  safetyLevel: RecipeSafetyLevel;
+  triggerWarnings: string[];
+  safeIngredients: string[];
+  riskyIngredients: string[];
+  unknownIngredients: string[];
+}
+
+export interface RecipeSearchRequest {
+  ingredients: string[];
+  number?: number;
+  ranking?: 1 | 2;
+  ignorePantry?: boolean;
+}
+
+export interface RecipeSearchResponse {
+  recipes: McasRecipe[];
+  totalResults: number;
+  searchParams: {
+    ingredientsUsed: string[];
+    maxRecipes: number;
+  };
+}
+
+export interface SavedRecipe {
+  id: number;
+  user_id: number;
+  spoonacular_recipe_id: number;
+  recipe_data: SpoonacularRecipeDetails;
+  mcas_score: number;
+  notes: string;
+  times_made: number;
+  created_at: Date;
+  updated_at: Date;
 }

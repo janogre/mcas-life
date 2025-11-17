@@ -2,6 +2,9 @@ import express from 'express';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { ValidationError, NotFoundError } from '../middleware/errorHandler.js';
+import { db } from '../db/connection.js';
+import { users } from '../db/schema.js';
+import { eq } from 'drizzle-orm';
 
 const router = express.Router();
 
@@ -9,6 +12,10 @@ const router = express.Router();
 const updateProfileSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name too long').optional(),
   email: z.string().email('Invalid email format').optional(),
+  city: z.string().max(100).optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+  country: z.string().length(2).optional(),
   preferences: z.object({
     language: z.enum(['no', 'en']).optional(),
     timezone: z.string().optional(),
@@ -35,13 +42,7 @@ const approvedFoodSchema = z.object({
   tested_date: z.string().datetime().optional()
 });
 
-// Temporary in-memory storage (replace with database later)
-const userProfiles: Array<{
-  userId: string;
-  preferences: any;
-  updatedAt: Date;
-}> = [];
-
+// Temporary in-memory storage for approved foods (will be moved to database in next phase)
 const approvedFoods: Array<{
   id: string;
   userId: string;
@@ -56,20 +57,42 @@ const approvedFoods: Array<{
 }> = [];
 
 // GET /api/users/profile - Get user profile
-router.get('/profile', (req: AuthenticatedRequest, res, next) => {
+router.get('/profile', async (req: AuthenticatedRequest, res, next) => {
   try {
     if (!req.user) {
       throw new Error('User not authenticated');
     }
-    
-    const profile = userProfiles.find(p => p.userId === req.user!.id);
-    
+
+    // Fetch full user data from database
+    const [userProfile] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, req.user.userId))
+      .limit(1);
+
+    if (!userProfile) {
+      throw new NotFoundError('User profile not found');
+    }
+
     res.json({
       success: true,
       data: {
-        user: req.user,
-        preferences: profile?.preferences || {},
-        last_updated: profile?.updatedAt || null
+        user: {
+          id: userProfile.id,
+          email: userProfile.email,
+          username: userProfile.username,
+          first_name: userProfile.first_name,
+          last_name: userProfile.last_name,
+          country: userProfile.country,
+          city: userProfile.city,
+          latitude: userProfile.latitude,
+          longitude: userProfile.longitude,
+          timezone: userProfile.timezone,
+          language: userProfile.language,
+          preferred_units: userProfile.preferred_units,
+          dark_mode: userProfile.dark_mode
+        },
+        last_updated: userProfile.updated_at
       }
     });
   } catch (error) {
@@ -78,38 +101,68 @@ router.get('/profile', (req: AuthenticatedRequest, res, next) => {
 });
 
 // PUT /api/users/profile - Update user profile
-router.put('/profile', (req: AuthenticatedRequest, res, next) => {
+router.put('/profile', async (req: AuthenticatedRequest, res, next) => {
   try {
     if (!req.user) {
       throw new Error('User not authenticated');
     }
-    
+
     const profileData = updateProfileSchema.parse(req.body);
-    
-    const existingProfileIndex = userProfiles.findIndex(p => p.userId === req.user!.id);
-    
-    if (existingProfileIndex >= 0) {
-      userProfiles[existingProfileIndex] = {
-        userId: req.user.id,
-        preferences: {
-          ...userProfiles[existingProfileIndex].preferences,
-          ...profileData.preferences
-        },
-        updatedAt: new Date()
-      };
-    } else {
-      userProfiles.push({
-        userId: req.user.id,
-        preferences: profileData.preferences || {},
-        updatedAt: new Date()
-      });
+
+    // Build update object with only provided fields
+    const updateData: any = {
+      updated_at: new Date()
+    };
+
+    if (profileData.name !== undefined) {
+      // Split name into first_name and last_name if provided
+      const nameParts = profileData.name.split(' ');
+      updateData.first_name = nameParts[0];
+      if (nameParts.length > 1) {
+        updateData.last_name = nameParts.slice(1).join(' ');
+      }
     }
-    
+
+    if (profileData.email !== undefined) updateData.email = profileData.email;
+    if (profileData.city !== undefined) updateData.city = profileData.city;
+    if (profileData.latitude !== undefined) updateData.latitude = profileData.latitude.toString();
+    if (profileData.longitude !== undefined) updateData.longitude = profileData.longitude.toString();
+    if (profileData.country !== undefined) updateData.country = profileData.country;
+
+    // Handle preferences
+    if (profileData.preferences) {
+      if (profileData.preferences.language) updateData.language = profileData.preferences.language;
+      if (profileData.preferences.timezone) updateData.timezone = profileData.preferences.timezone;
+    }
+
+    // Update user in database
+    const [updatedUser] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, req.user.userId))
+      .returning();
+
+    if (!updatedUser) {
+      throw new NotFoundError('User not found');
+    }
+
     res.json({
       success: true,
       message: 'Profile updated successfully',
       data: {
-        preferences: userProfiles.find(p => p.userId === req.user!.id)?.preferences
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          username: updatedUser.username,
+          first_name: updatedUser.first_name,
+          last_name: updatedUser.last_name,
+          country: updatedUser.country,
+          city: updatedUser.city,
+          latitude: updatedUser.latitude,
+          longitude: updatedUser.longitude,
+          timezone: updatedUser.timezone,
+          language: updatedUser.language
+        }
       }
     });
   } catch (error) {

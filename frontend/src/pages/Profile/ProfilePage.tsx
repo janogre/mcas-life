@@ -1,15 +1,50 @@
-import React from 'react';
-import { User, Settings, Shield, Bell, Download, LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { User, Settings, Shield, Bell, Download, LogOut, MapPin } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { LocationSelector } from '../../components/Settings/LocationSelector';
+import { AirthingsAdmin } from '../../components/Settings/AirthingsAdmin';
+import api from '../../lib/api';
 
 export function ProfilePage() {
   const { user, logout } = useAuth();
+  const [showLocationSelector, setShowLocationSelector] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState({
+    city: user?.city || undefined,
+    latitude: user?.latitude ? parseFloat(user.latitude) : undefined,
+    longitude: user?.longitude ? parseFloat(user.longitude) : undefined,
+    country: user?.country || undefined
+  });
 
   const handleLogout = async () => {
     try {
       await logout();
     } catch (error) {
       console.error('Logout error:', error);
+    }
+  };
+
+  const handleLocationSave = async (location: {
+    city: string;
+    latitude: number;
+    longitude: number;
+    country: string;
+  }) => {
+    try {
+      await api.put('/users/profile', {
+        city: location.city,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        country: location.country
+      });
+
+      setCurrentLocation(location);
+      setShowLocationSelector(false);
+
+      // Show success message (you could use a toast here)
+      console.log('Location saved successfully');
+    } catch (error) {
+      console.error('Error saving location:', error);
+      // Show error message
     }
   };
 
@@ -49,6 +84,74 @@ export function ProfilePage() {
             <div className="text-2xl font-bold text-gray-900">12</div>
             <div className="text-sm text-gray-600">AI Analyses</div>
           </div>
+        </div>
+      </div>
+
+      {/* Admin Section - Airthings Configuration */}
+      {user?.role === 'admin' && (
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Admin Settings</h2>
+          <AirthingsAdmin />
+        </div>
+      )}
+
+      {/* Environment Data Integration */}
+      <div className="grid md:grid-cols-1 gap-6">
+        {/* Location Settings */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <MapPin className="w-5 h-5 mr-2" />
+            Location Settings
+          </h3>
+
+          {!showLocationSelector ? (
+            <div className="space-y-4">
+              {currentLocation.city ? (
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">Nåværende lokasjon:</p>
+                  <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{currentLocation.city}</p>
+                      {currentLocation.latitude && currentLocation.longitude && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          {currentLocation.latitude.toFixed(4)}°, {currentLocation.longitude.toFixed(4)}°
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setShowLocationSelector(true)}
+                      className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                    >
+                      Endre
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Din lokasjon brukes til å hente værdata automatisk når du logger symptomer.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Sett din lokasjon for automatisk værhenting når du logger symptomer.
+                  </p>
+                  <button
+                    onClick={() => setShowLocationSelector(true)}
+                    className="w-full px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+                  >
+                    Sett lokasjon
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <LocationSelector
+              currentCity={currentLocation.city}
+              currentLatitude={currentLocation.latitude}
+              currentLongitude={currentLocation.longitude}
+              onLocationSelect={handleLocationSave}
+              onCancel={() => setShowLocationSelector(false)}
+            />
+          )}
         </div>
       </div>
 

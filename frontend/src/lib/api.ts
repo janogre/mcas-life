@@ -1,18 +1,25 @@
 import axios from 'axios';
-import type { 
-  User, 
-  Food, 
+import type {
+  User,
+  Food,
   ApprovedFood,
+  PersonalFoodRating,
   SymptomEntry,
   TriggerAnalysisResult,
   FoodSearchRequest,
-  FoodSearchResponse 
+  FoodSearchResponse,
+  RecipeSearchRequest,
+  RecipeSearchResponse,
+  SavedRecipe,
+  SpoonacularRecipeDetails
 } from '../types/shared';
 
-// API client configuration
+// API client configuration - Use environment variable
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+console.log('🔧 API baseURL:', baseURL, '| DEV mode:', import.meta.env.DEV);
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-  timeout: 10000,
+  baseURL,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -32,25 +39,34 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    
+
+    // Handle rate limiting errors
+    if (error.response?.status === 429) {
+      console.error('⚠️ Rate limit exceeded:', error.response.data);
+      // Don't redirect, just show error to user
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
+
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
           // Direct refresh call to avoid circular dependency
-          const refreshResponse = await axios.post(`${import.meta.env.VITE_API_URL}/auth/refresh`, 
+          const refreshUrl = import.meta.env.DEV ? 'http://localhost:3001/api/auth/refresh' : `${import.meta.env.VITE_API_URL}/auth/refresh`;
+          const refreshResponse = await axios.post(refreshUrl,
             { refresh_token: refreshToken }
           );
-          
+
           localStorage.setItem('authToken', refreshResponse.data.data.access_token);
           localStorage.setItem('refreshToken', refreshResponse.data.data.refresh_token);
-          
+
           // Retry original request with new token
           originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.data.access_token}`;
           return api(originalRequest);
         } catch (refreshError) {
+          console.error('🔄 Token refresh failed:', refreshError);
           // Refresh failed, redirect to login
           localStorage.removeItem('authToken');
           localStorage.removeItem('refreshToken');
@@ -58,6 +74,7 @@ api.interceptors.response.use(
         }
       } else {
         // No refresh token, redirect to login
+        console.warn('🔐 No refresh token available, redirecting to login');
         localStorage.removeItem('authToken');
         window.location.href = '/login';
       }
@@ -76,8 +93,12 @@ export interface LoginResponse {
   success: boolean;
   data: {
     user: User;
-    access_token: string;
-    refresh_token: string;
+    tokens: {
+      access_token: string;
+      refresh_token: string;
+      expires_in: number;
+      token_type: string;
+    };
   };
 }
 
@@ -93,8 +114,26 @@ export interface RegisterRequest {
 // Auth API
 export const authApi = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-    const response = await api.post('/auth/login', credentials);
-    return response.data;
+    console.log('🔐 Login attempt:', { email: credentials.email, passwordLength: credentials.password?.length });
+    console.log('🌐 API Base URL:', baseURL);
+    try {
+      console.log('🚀 Sending POST request to /auth/login with baseURL:', baseURL);
+      const response = await api.post('/auth/login', credentials);
+      console.log('✅ Login success:', response.status, 'Data:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Login error full:', error);
+      console.error('❌ Login error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        timeout: error.code === 'ECONNABORTED' ? 'TIMEOUT' : 'NO_TIMEOUT'
+      });
+      throw error;
+    }
   },
 
   register: async (userData: RegisterRequest): Promise<LoginResponse> => {
@@ -116,12 +155,30 @@ export const authApi = {
     const response = await api.get('/auth/me');
     return response.data;
   },
+
+  forgotPassword: async (email: string) => {
+    console.log('API URL:', import.meta.env.VITE_API_URL);
+    console.log('Making forgot password request to:', `${import.meta.env.VITE_API_URL}/auth/forgot-password`);
+    const response = await api.post('/auth/forgot-password', { email });
+    console.log('Forgot password API response:', response);
+    return response.data;
+  },
+
+  resetPassword: async (token: string, password: string) => {
+    const response = await api.post('/auth/reset-password', { token, password });
+    return response.data;
+  },
+
+  validateResetToken: async (token: string) => {
+    const response = await api.get(`/auth/validate-reset-token/${token}`);
+    return response.data;
+  },
 };
 
 // Food API
 export const foodApi = {
   search: async (searchRequest: FoodSearchRequest): Promise<FoodSearchResponse> => {
-    // Map search request to SIGHI endpoint parameters
+    // Map search request to SIGHI endpoint parameters (using database endpoint)
     const params: any = {};
     if (searchRequest.limit) params.limit = searchRequest.limit;
     if (searchRequest.offset) params.offset = searchRequest.offset;
@@ -170,9 +227,69 @@ export const foodApi = {
     return response.data.data;
   },
 
+  deleteApproved: async (id: number): Promise<void> => {
+    const response = await api.delete(`/foods/approved/${id}`);
+    return response.data;
+  },
+
+  createCustom: async (customFood: {
+    name_no: string;
+    name_en: string;
+    category: string;
+    compatibility: number;
+    triggers?: string[];
+    remarks_no?: string;
+    remarks_en?: string;
+  }): Promise<Food> => {
+    const response = await api.post('/foods/custom', customFood);
+    return response.data.data;
+  },
+
   getStatistics: async () => {
     const response = await api.get('/foods/statistics');
     return response.data.data;
+  },
+};
+
+// Personal Food Ratings API
+export const personalRatingApi = {
+  getUserRatings: async (): Promise<PersonalFoodRating[]> => {
+    const response = await api.get('/foods/ratings');
+    return response.data.data;
+  },
+
+  getFoodRating: async (foodId: number): Promise<PersonalFoodRating | null> => {
+    try {
+      const response = await api.get(`/foods/ratings/${foodId}`);
+      return response.data.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return null; // No rating found
+      }
+      throw error;
+    }
+  },
+
+  setFoodRating: async (foodId: number, rating: number, notes?: string): Promise<PersonalFoodRating> => {
+    const response = await api.post('/foods/ratings', {
+      food_id: foodId,
+      personal_rating: rating,
+      notes: notes || ''
+    });
+    return response.data.data;
+  },
+
+  updateFoodRating: async (foodId: number, rating: number, notes?: string): Promise<PersonalFoodRating> => {
+    const response = await api.put(`/foods/ratings/${foodId}`, {
+      personal_rating: rating,
+      notes: notes || ''
+    });
+    return response.data.data;
+  },
+
+  removeFoodRating: async (foodId: number): Promise<void> => {
+    const response = await api.delete(`/foods/ratings/${foodId}`);
+    return response.data;
   },
 };
 
@@ -201,6 +318,39 @@ export const symptomsApi = {
   delete: async (id: number) => {
     const response = await api.delete(`/symptoms/${id}`);
     return response.data;
+  },
+
+  // Symptom Registration v2.0 methods
+  quickCapture: async (templateId: number, severity: number) => {
+    const response = await api.post('/symptoms/quick-capture', { templateId, severity });
+    return response.data.data;
+  },
+
+  enrichSymptom: async (symptomId: number) => {
+    const response = await api.post(`/symptoms/${symptomId}/enrich`);
+    return response.data.data;
+  },
+
+  getFollowUpForm: async (symptomId: number) => {
+    const response = await api.get(`/symptoms/${symptomId}/follow-up-form`);
+    return response.data.data;
+  },
+
+  completeFollowUp: async (
+    symptomId: number,
+    answers: any,
+    roomLocations?: Array<{ room_id: string; room_name: string; time_spent_minutes?: number }>
+  ) => {
+    const response = await api.post(`/symptoms/${symptomId}/complete-follow-up`, {
+      answers,
+      roomLocations,
+    });
+    return response.data.data;
+  },
+
+  getNeedingFollowUp: async (limit: number = 10) => {
+    const response = await api.get('/symptoms/needing-follow-up', { params: { limit } });
+    return response.data.data;
   },
 };
 
@@ -243,6 +393,85 @@ export const healthApi = {
   getWeeklyReport: async (startDate: string) => {
     const response = await api.get(`/health/report/weekly?start=${startDate}`);
     return response.data.data;
+  },
+};
+
+// Weather API
+export const weatherApi = {
+  getCurrentWeather: async (params: { latitude: number; longitude: number; city?: string }) => {
+    const response = await api.get('/weather/current', { params });
+    return response.data.data;
+  },
+
+  getWeatherByCity: async (cityName: string) => {
+    const response = await api.get(`/weather/city/${encodeURIComponent(cityName)}`);
+    return response.data.data;
+  },
+
+  getWeatherHistory: async (params: { latitude: number; longitude: number; days?: number }) => {
+    const response = await api.get('/weather/history', { params });
+    return response.data.data;
+  },
+};
+
+// Symptom Templates API
+export const symptomTemplateApi = {
+  getAll: async () => {
+    const response = await api.get('/symptom-templates');
+    return response.data.data;
+  },
+
+  getGrouped: async () => {
+    const response = await api.get('/symptom-templates/grouped');
+    return response.data.data;
+  },
+
+  getByCategory: async (category: string) => {
+    const response = await api.get(`/symptom-templates/category/${category}`);
+    return response.data.data;
+  },
+
+  search: async (query: string) => {
+    const response = await api.get('/symptom-templates/search', { params: { q: query } });
+    return response.data.data;
+  },
+
+  getById: async (id: number) => {
+    const response = await api.get(`/symptom-templates/${id}`);
+    return response.data.data;
+  },
+
+  getFollowUpQuestions: async (id: number) => {
+    const response = await api.get(`/symptom-templates/${id}/follow-up`);
+    return response.data.data;
+  },
+
+  getMetadata: async (id: number) => {
+    const response = await api.get(`/symptom-templates/${id}/metadata`);
+    return response.data.data;
+  },
+};
+
+// Airthings API
+export const airthingsApi = {
+  getDevices: async () => {
+    const response = await api.get('/airthings/devices');
+    return response.data.data;
+  },
+
+  getDeviceData: async (deviceId: string) => {
+    const response = await api.get(`/airthings/devices/${deviceId}`);
+    return response.data.data;
+  },
+
+  getAllDevicesAirQuality: async () => {
+    const response = await api.get('/airthings/air-quality');
+    return response.data.data;
+  },
+
+  getStatus: async () => {
+    const response = await api.get('/airthings/status');
+    return response.data;
   },
 };
 
@@ -301,6 +530,83 @@ export const diaryApi = {
 
   getStatistics: async () => {
     const response = await api.get('/diary/statistics');
+    return response.data.data;
+  },
+};
+
+// ==================== RECIPE API ====================
+
+export const recipeApi = {
+  /**
+   * Search recipes by Safe Foods ingredients
+   */
+  searchByIngredients: async (request: RecipeSearchRequest): Promise<RecipeSearchResponse> => {
+    const response = await api.post('/recipes/search', request);
+    return response.data.data;
+  },
+
+  /**
+   * Get AI-powered recipe suggestions based on user's Safe Foods
+   */
+  getSuggestions: async (maxRecipes: number = 10): Promise<RecipeSearchResponse> => {
+    const response = await api.get('/recipes/suggest', {
+      params: { number: maxRecipes }
+    });
+    return response.data.data;
+  },
+
+  /**
+   * Get detailed recipe information
+   */
+  getRecipeDetails: async (recipeId: number): Promise<SpoonacularRecipeDetails> => {
+    const response = await api.get(`/recipes/${recipeId}`);
+    return response.data.data;
+  },
+
+  /**
+   * Get all saved recipes
+   */
+  getSavedRecipes: async (): Promise<SavedRecipe[]> => {
+    const response = await api.get('/recipes/saved/all');
+    return response.data.data;
+  },
+
+  /**
+   * Save a recipe to user's collection
+   */
+  saveRecipe: async (data: {
+    spoonacularRecipeId: number;
+    recipeData: SpoonacularRecipeDetails;
+    mcasScore: number;
+    notes?: string;
+  }): Promise<SavedRecipe> => {
+    const response = await api.post('/recipes/saved', data);
+    return response.data.data;
+  },
+
+  /**
+   * Update saved recipe (notes, times made)
+   */
+  updateSavedRecipe: async (recipeId: number, updates: {
+    notes?: string;
+    timesMade?: number;
+  }): Promise<SavedRecipe> => {
+    const response = await api.put(`/recipes/saved/${recipeId}`, updates);
+    return response.data.data;
+  },
+
+  /**
+   * Delete saved recipe
+   */
+  deleteSavedRecipe: async (recipeId: number): Promise<void> => {
+    await api.delete(`/recipes/saved/${recipeId}`);
+  },
+
+  /**
+   * Increment times made counter
+   */
+  incrementTimesMade: async (recipeId: number): Promise<SavedRecipe> => {
+    const response = await api.post(`/recipes/saved/${recipeId}/increment-made`);
     return response.data.data;
   },
 };

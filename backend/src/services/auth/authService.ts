@@ -12,9 +12,11 @@
 
 import * as bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { eq, and } from 'drizzle-orm';
+import crypto from 'crypto';
+import { eq, and, gt } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { users, mcasProfiles, userPreferences, userSessions } from '../../db/schema.js';
+import { emailService } from '../email/emailService.js';
 import type { 
   User, 
   LoginCredentials, 
@@ -564,6 +566,115 @@ export class AuthService {
       ));
 
     return result.rowCount || 0;
+  }
+
+  /**
+   * Initiate password reset - generate token and store in database
+   */
+  async forgotPassword(email: string): Promise<{ resetToken: string; userId: number; email: string; emailSent: boolean }> {
+    
+    // Find user by email
+    const userResult = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (userResult.length === 0) {
+      throw new Error('USER_NOT_FOUND');
+    }
+
+    const user = userResult[0];
+
+    // Generate secure reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+    // Store reset token in database
+    await db
+      .update(users)
+      .set({
+        password_reset_token: resetToken,
+        password_reset_expires: resetExpires,
+        updated_at: new Date()
+      })
+      .where(eq(users.id, user.id));
+
+    // Attempt to send email
+    const emailSent = await emailService.sendPasswordResetEmail(email, resetToken);
+
+    return {
+      resetToken,
+      userId: user.id,
+      email: user.email,
+      emailSent
+    };
+  }
+
+  /**
+   * Reset password using valid token
+   */
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    
+    // Find user with valid reset token
+    const userResult = await db
+      .select()
+      .from(users)
+      .where(and(
+        eq(users.password_reset_token, token),
+        gt(users.password_reset_expires, new Date())
+      ))
+      .limit(1);
+
+    if (userResult.length === 0) {
+      throw new Error('INVALID_OR_EXPIRED_TOKEN');
+    }
+
+    const user = userResult[0];
+
+    // Hash new password
+    const hashedPassword = await this.hashPassword(newPassword);
+
+    // Update password and clear reset token
+    await db
+      .update(users)
+      .set({
+        password_hash: hashedPassword,
+        password_reset_token: null,
+        password_reset_expires: null,
+        updated_at: new Date()
+      })
+      .where(eq(users.id, user.id));
+
+    // Invalidate all user sessions for security
+    await this.logoutAll(user.id);
+  }
+
+  /**
+   * Validate reset token without consuming it
+   */
+  async validateResetToken(token: string): Promise<{ userId: number; email: string }> {
+    
+    const userResult = await db
+      .select({
+        id: users.id,
+        email: users.email
+      })
+      .from(users)
+      .where(and(
+        eq(users.password_reset_token, token),
+        gt(users.password_reset_expires, new Date())
+      ))
+      .limit(1);
+
+    if (userResult.length === 0) {
+      throw new Error('INVALID_OR_EXPIRED_TOKEN');
+    }
+
+    return {
+      userId: userResult[0].id,
+      email: userResult[0].email
+    };
   }
 }
 

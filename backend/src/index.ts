@@ -10,12 +10,19 @@ import { notFoundHandler } from './middleware/notFoundHandler.js';
 // Import services (new microservices architecture)
 import { authRoutes, authenticateToken } from './services/auth/index.js';
 import { foodRoutes } from './services/food/foodRoutes.js';
+import { analyticsRoutes } from './services/analytics/analyticsRoutes.js';
+import { recipeRoutes } from './services/recipes/recipeRoutes.js';
 
 // Import legacy routes (to be migrated to services)
 import { sighiRoutes } from './routes/sighi.js';
 import { healthRoutes } from './routes/health.js';
+import { symptomRoutes } from './routes/symptoms.js';
+import symptomTemplateRoutes from './routes/symptomTemplates.js';
 import { diaryRoutes } from './routes/diary.js';
 import { usersRoutes } from './routes/users.js';
+import { weatherRoutes } from './routes/weather.js';
+import { airthingsRoutesV2 } from './routes/airthingsV2.js';
+import { settingsRoutes } from './routes/settings.js';
 
 // Load environment variables
 dotenv.config();
@@ -39,44 +46,69 @@ app.use(helmet({
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env['CORS_ORIGIN'] || 'http://localhost:3000',
+  origin: process.env['CORS_ORIGIN']?.split(',') || ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005', 'http://localhost:3006', 'http://localhost:3007'],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  preflightContinue: false
 };
 app.use(cors(corsOptions));
 
-// Rate limiting
+// Debug middleware for CORS
+if (process.env['NODE_ENV'] === 'development') {
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.path} - Origin: ${req.get('Origin')}`);
+    next();
+  });
+}
+
+// Rate limiting - Generous limits for development
 const limiter = rateLimit({
   windowMs: parseInt(process.env['RATE_LIMIT_WINDOW_MS'] || '900000'), // 15 minutes
-  max: parseInt(process.env['RATE_LIMIT_MAX_REQUESTS'] || '100'), // limit each IP to 100 requests per windowMs
+  max: parseInt(process.env['RATE_LIMIT_MAX_REQUESTS'] || '10000'), // 10000 requests per 15 min window for development
   message: {
     error: 'Too many requests from this IP, please try again later.'
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  // Skip rate limiting for certain paths in development
+  skip: (req) => {
+    if (process.env['NODE_ENV'] === 'development') {
+      // Skip rate limiting for health checks and auth refresh
+      return req.path === '/api/health' || req.path === '/api/auth/refresh';
+    }
+    return false;
+  }
 });
 app.use('/api/', limiter);
+
+// Compression middleware (temporarily disabled due to issues with Chrome)
+// app.use(compression());
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Compression middleware
-app.use(compression());
 
 // Logging middleware
 if (process.env['NODE_ENV'] !== 'test') {
   app.use(morgan('combined'));
 }
 
-// Health check endpoint (before auth middleware)
-app.use('/api/health', healthRoutes);
-
 // API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/sighi', foodRoutes); // Use new food service instead of legacy sighi routes
+app.use('/api/foods', foodRoutes); // Food management and approved foods
+app.use('/api/analytics', analyticsRoutes); // AI-driven correlation analysis and trigger detection
+app.use('/api/recipes', authenticateToken, recipeRoutes); // Recipe search and management with Spoonacular API
+app.use('/api/sighi', foodRoutes); // Legacy compatibility for existing SIGHI endpoints
+app.use('/api/health', healthRoutes); // Enhanced health context and metrics
+app.use('/api/symptoms', authenticateToken, symptomRoutes); // Enhanced symptom tracking
+app.use('/api/symptom-templates', symptomTemplateRoutes); // Symptom templates for registration flow
 app.use('/api/diary', authenticateToken, diaryRoutes);
 app.use('/api/users', authenticateToken, usersRoutes);
+app.use('/api/weather', weatherRoutes); // Weather data for symptom correlation
+app.use('/api/airthings', authenticateToken, airthingsRoutesV2); // Airthings indoor air quality integration (V2 - Client Credentials)
+app.use('/api/settings', authenticateToken, settingsRoutes); // System settings management
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -88,9 +120,17 @@ app.get('/', (req, res) => {
     endpoints: [
       '/api/health',
       '/api/auth',
+      '/api/foods',
+      '/api/analytics',
+      '/api/recipes',
+      '/api/symptoms',
+      '/api/symptom-templates',
       '/api/sighi',
       '/api/diary',
-      '/api/users'
+      '/api/users',
+      '/api/weather',
+      '/api/airthings',
+      '/api/settings'
     ]
   });
 });

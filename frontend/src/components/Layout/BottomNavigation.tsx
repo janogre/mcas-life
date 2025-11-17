@@ -1,38 +1,40 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Home, 
-  AlertCircle, 
-  Search, 
+import {
+  Home,
+  AlertCircle,
+  Search,
+  Shield,
   BookOpen,
-  Brain,
-  User
+  User,
+  Wind,
+  ChefHat
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const navigationItems = [
   {
-    name: 'Dashboard',
+    name: 'Hjem',
     href: '/dashboard',
     icon: Home,
   },
   {
-    name: 'Symptoms',
-    href: '/symptoms',
-    icon: AlertCircle,
-  },
-  {
-    name: 'Food',
+    name: 'Mat',
     href: '/food',
     icon: Search,
   },
   {
-    name: 'Diary',
+    name: 'Oppskrifter',
+    href: '/recipes/search',
+    icon: ChefHat,
+  },
+  {
+    name: 'Dagbok',
     href: '/diary',
     icon: BookOpen,
   },
   {
-    name: 'Profile',
+    name: 'Profil',
     href: '/profile',
     icon: User,
   },

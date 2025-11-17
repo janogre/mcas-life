@@ -1,12 +1,18 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  Heart, 
-  Bell, 
-  User, 
+import {
+  Heart,
+  Bell,
+  User,
   LogOut,
   Menu,
-  X
+  X,
+  ChefHat,
+  ChevronDown,
+  Search,
+  Shield,
+  BookOpen,
+  UtensilsCrossed
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -14,6 +20,7 @@ export function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showMobileMenu, setShowMobileMenu] = React.useState(false);
+  const [showFoodMenu, setShowFoodMenu] = React.useState(false);
 
   const handleLogout = async () => {
     try {
@@ -38,35 +45,74 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link 
-              to="/dashboard" 
+            <Link
+              to="/dashboard"
               className="text-gray-600 hover:text-primary-600 font-medium transition-colors"
             >
               Dashboard
             </Link>
-            <Link 
-              to="/symptoms" 
+
+            {/* Mat dropdown */}
+            <div
+              className="relative"
+              onMouseEnter={() => setShowFoodMenu(true)}
+              onMouseLeave={() => setShowFoodMenu(false)}
+            >
+              <button
+                className="text-gray-600 hover:text-primary-600 font-medium transition-colors flex items-center space-x-1 py-2"
+              >
+                <UtensilsCrossed className="w-4 h-4" />
+                <span>Mat</span>
+                <ChevronDown className="w-3 h-3" />
+              </button>
+
+              {showFoodMenu && (
+                <div className="absolute left-0 top-full pt-1 w-56 z-50">
+                  <div className="bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+                    <Link
+                      to="/food"
+                      className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                    >
+                      <Search className="w-4 h-4" />
+                      <span>Matvarer SIGHI</span>
+                    </Link>
+                    <Link
+                      to="/safe-foods"
+                      className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                    >
+                      <Shield className="w-4 h-4" />
+                      <span>Trygge matvarer</span>
+                    </Link>
+                    <Link
+                      to="/recipes/search"
+                      className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                    >
+                      <ChefHat className="w-4 h-4" />
+                      <span>Oppskrifter</span>
+                    </Link>
+                    <Link
+                      to="/diary"
+                      className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      <span>Dagbok mat</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Link
+              to="/symptoms"
               className="text-gray-600 hover:text-primary-600 font-medium transition-colors"
             >
-              Symptoms
+              Symptomer
             </Link>
-            <Link 
-              to="/food" 
+            <Link
+              to="/analytics"
               className="text-gray-600 hover:text-primary-600 font-medium transition-colors"
             >
-              Food Search
-            </Link>
-            <Link 
-              to="/diary" 
-              className="text-gray-600 hover:text-primary-600 font-medium transition-colors"
-            >
-              Diary
-            </Link>
-            <Link 
-              to="/analytics" 
-              className="text-gray-600 hover:text-primary-600 font-medium transition-colors"
-            >
-              AI Analysis
+              AI Analyse
             </Link>
           </nav>
 
@@ -134,40 +180,65 @@ export function Header() {
         {showMobileMenu && (
           <div className="md:hidden border-t border-gray-200 py-4">
             <nav className="flex flex-col space-y-2">
-              <Link 
-                to="/dashboard" 
+              <Link
+                to="/dashboard"
                 className="px-4 py-2 text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors"
                 onClick={() => setShowMobileMenu(false)}
               >
                 Dashboard
               </Link>
-              <Link 
-                to="/symptoms" 
+
+              {/* Mat section */}
+              <div className="px-4 py-2">
+                <div className="flex items-center space-x-2 text-gray-500 text-sm font-medium mb-2">
+                  <UtensilsCrossed className="w-4 h-4" />
+                  <span>Mat</span>
+                </div>
+                <div className="ml-6 space-y-1">
+                  <Link
+                    to="/food"
+                    className="block px-3 py-2 text-sm text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded transition-colors"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    Matvarer SIGHI
+                  </Link>
+                  <Link
+                    to="/safe-foods"
+                    className="block px-3 py-2 text-sm text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded transition-colors"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    Trygge matvarer
+                  </Link>
+                  <Link
+                    to="/recipes/search"
+                    className="block px-3 py-2 text-sm text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded transition-colors"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    Oppskrifter
+                  </Link>
+                  <Link
+                    to="/diary"
+                    className="block px-3 py-2 text-sm text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded transition-colors"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    Dagbok mat
+                  </Link>
+                </div>
+              </div>
+
+              <Link
+                to="/symptoms"
                 className="px-4 py-2 text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors"
                 onClick={() => setShowMobileMenu(false)}
               >
-                Symptoms
+                Symptomer
               </Link>
-              <Link 
-                to="/food" 
+              <Link
+                to="/analytics"
                 className="px-4 py-2 text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors"
                 onClick={() => setShowMobileMenu(false)}
               >
-                Food Search
-              </Link>
-              <Link 
-                to="/diary" 
-                className="px-4 py-2 text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                Diary
-              </Link>
-              <Link 
-                to="/analytics" 
-                className="px-4 py-2 text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                AI Analysis
+                AI Analyse
               </Link>
             </nav>
           </div>

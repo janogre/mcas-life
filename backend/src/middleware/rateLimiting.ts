@@ -9,7 +9,7 @@ import rateLimit from 'express-rate-limit';
 // General API rate limiting
 export const generalRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per window
+  max: 10000, // 10000 requests per window (increased for development)
   message: {
     success: false,
     error: 'Too many requests, please try again later'
@@ -21,7 +21,7 @@ export const generalRateLimit = rateLimit({
 // Authentication-specific rate limiting
 export const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // 20 login attempts per window
+  max: 100, // 100 login attempts per window (increased for development)
   message: {
     success: false,
     error: 'Too many authentication attempts, please try again later'
@@ -86,7 +86,7 @@ export const rateLimitConfig = {
     // Food search (high usage expected)
     search: rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 100, // 100 searches per window
+      max: 500, // 500 searches per window
       message: {
         success: false,
         error: 'Too many search requests, please try again later'
@@ -108,7 +108,7 @@ export const rateLimitConfig = {
     // Symptom logging (frequent usage expected)
     logging: rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 50, // 50 entries per window
+      max: 200, // 200 entries per window
       message: {
         success: false,
         error: 'Too many diary entries, please try again later'

@@ -81,10 +81,10 @@ export class FoodService {
       conditions.push(like(foods.category, `%${category_filter}%`));
     }
 
-    // Trigger filter - check if specific trigger exists in JSON array
+    // Trigger filter - check if specific trigger exists in JSON array (PostgreSQL)
     if (trigger_filter) {
       conditions.push(
-        sql`JSON_EXTRACT(${foods.triggers}, '$') LIKE '%"${trigger_filter}"%'`
+        sql`${foods.triggers}::jsonb @> ${JSON.stringify([trigger_filter])}`
       );
     }
 
@@ -175,7 +175,7 @@ export class FoodService {
       .select()
       .from(foods)
       .where(
-        sql`JSON_EXTRACT(${foods.triggers}, '$') LIKE '%"${trigger}"%'`
+        sql`${foods.triggers}::jsonb @> ${JSON.stringify([trigger])}`
       )
       .orderBy(asc(foods.name_no));
 
@@ -338,6 +338,25 @@ export class FoodService {
   }
 
   /**
+   * Remove user-approved food
+   */
+  async removeUserApprovedFood(userId: number, approvedFoodId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(approvedFoods)
+        .where(and(
+          eq(approvedFoods.id, approvedFoodId),
+          eq(approvedFoods.user_id, userId)
+        ));
+
+      return result.rowCount !== undefined && result.rowCount > 0;
+    } catch (error) {
+      console.error('Remove approved food error:', error);
+      return false;
+    }
+  }
+
+  /**
    * Import SIGHI foods in bulk (for initial setup)
    */
   async bulkImportFoods(importRequest: BulkFoodImportRequest): Promise<{
@@ -482,14 +501,21 @@ export class FoodService {
 
     allFoods.forEach(food => {
       if (food.triggers) {
-        try {
-          const triggers = JSON.parse(food.triggers) as SighiTrigger[];
-          triggers.forEach(trigger => {
-            triggerCounts[trigger] = (triggerCounts[trigger] || 0) + 1;
-          });
-        } catch (e) {
-          // Skip invalid JSON
+        let triggers: SighiTrigger[] = [];
+        if (Array.isArray(food.triggers)) {
+          triggers = food.triggers as SighiTrigger[];
+        } else if (typeof food.triggers === 'string') {
+          try {
+            triggers = JSON.parse(food.triggers) as SighiTrigger[];
+          } catch (e) {
+            // Skip invalid JSON
+            return;
+          }
         }
+        
+        triggers.forEach(trigger => {
+          triggerCounts[trigger] = (triggerCounts[trigger] || 0) + 1;
+        });
       }
     });
 
@@ -517,12 +543,16 @@ export class FoodService {
     let triggers: SighiTrigger[] = [];
     let biogenic_amines: BiogenicAmines | null = null;
 
-    // Parse triggers
+    // Parse triggers - Drizzle already parses JSONB fields
     if (dbFood.triggers) {
-      try {
-        triggers = JSON.parse(dbFood.triggers);
-      } catch (e) {
-        triggers = [];
+      if (Array.isArray(dbFood.triggers)) {
+        triggers = dbFood.triggers as SighiTrigger[];
+      } else if (typeof dbFood.triggers === 'string') {
+        try {
+          triggers = JSON.parse(dbFood.triggers);
+        } catch (e) {
+          triggers = [];
+        }
       }
     }
 
@@ -548,10 +578,45 @@ export class FoodService {
       image_url: dbFood.image_url,
       nutrition_data: dbFood.nutrition_data ? JSON.parse(dbFood.nutrition_data) : null,
       verified: dbFood.verified || false,
-      source: dbFood.source as 'sighi' | 'community' | 'fooddata' | 'openfoodfacts',
+      source: dbFood.source as 'sighi' | 'community' | 'fooddata' | 'openfoodfacts' | 'custom',
       created_at: dbFood.created_at,
       updated_at: dbFood.updated_at
     };
+  }
+
+  /**
+   * Create custom user-defined food
+   */
+  async createCustomFood(userId: number, customFood: {
+    name_no: string;
+    name_en: string;
+    category: string;
+    compatibility: FoodCompatibility;
+    triggers: SighiTrigger[];
+    remarks_no?: string;
+    remarks_en?: string;
+  }): Promise<Food> {
+    const [result] = await db
+      .insert(foods)
+      .values({
+        name_no: customFood.name_no,
+        name_en: customFood.name_en,
+        category: customFood.category,
+        compatibility: customFood.compatibility.toString() as "0" | "1" | "2" | "3",
+        triggers: customFood.triggers,
+        remarks_no: customFood.remarks_no || '',
+        remarks_en: customFood.remarks_en || '',
+        verified: false,
+        source: 'custom',
+        created_by_user_id: userId
+      })
+      .returning();
+
+    if (!result) {
+      throw new Error('Failed to create custom food');
+    }
+
+    return this.mapDatabaseToFood(result);
   }
 }
 

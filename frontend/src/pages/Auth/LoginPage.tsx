@@ -134,16 +134,12 @@ export function LoginPage() {
 
             {/* Forgot Password */}
             <div className="text-right">
-              <button
-                type="button"
+              <Link
+                to="/forgot-password"
                 className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-                onClick={() => {
-                  // TODO: Implement forgot password
-                  alert('Forgot password functionality coming soon');
-                }}
               >
                 Forgot your password?
-              </button>
+              </Link>
             </div>
 
             {/* Submit Button */}
@@ -168,6 +164,16 @@ export function LoginPage() {
               )}
             </button>
           </form>
+
+          {/* Forgot Password Link */}
+          <div className="mt-4 text-center">
+            <Link 
+              to="/forgot-password" 
+              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+            >
+              Forgot your password?
+            </Link>
+          </div>
 
           {/* Sign Up Link */}
           <div className="mt-6 text-center">

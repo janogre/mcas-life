@@ -1,20 +1,16 @@
 import express from 'express';
 import { z } from 'zod';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { ValidationError, NotFoundError } from '../middleware/errorHandler.js';
+import { db } from '../db/connection.js';
+import { foods } from '../db/schema.js';
+import { eq, like, or, sql, and } from 'drizzle-orm';
 
 const router = express.Router();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Path to SIGHI data file
-const SIGHI_DATA_PATH = path.join(__dirname, '../../..', 'database', 'sighi-foods-data.json');
 
 // Validation schemas
 const searchQuerySchema = z.object({
   q: z.string().optional(),
+  search: z.string().optional(), // Alternative name for query
   category: z.string().optional(),
   compatibility: z.string().transform((val) => {
     if (val === undefined || val === '') return undefined;
@@ -43,77 +39,64 @@ const searchQuerySchema = z.object({
   }).optional()
 });
 
-// Load SIGHI data
-let sighiData: any = null;
-
-function loadSighiData() {
-  try {
-    if (!fs.existsSync(SIGHI_DATA_PATH)) {
-      throw new Error('SIGHI data file not found');
-    }
-    
-    const rawData = fs.readFileSync(SIGHI_DATA_PATH, 'utf8');
-    sighiData = JSON.parse(rawData);
-    console.log(`✅ Loaded ${sighiData.foods.length} SIGHI foods`);
-  } catch (error) {
-    console.error('❌ Error loading SIGHI data:', error);
-    throw error;
-  }
-}
-
-// Initialize data on startup
-loadSighiData();
-
-// GET /api/sighi/foods - Search foods
-router.get('/foods', (req, res, next) => {
+// GET /api/sighi/foods - Search foods from database
+router.get('/foods', async (req, res, next) => {
   try {
     const query = searchQuerySchema.parse(req.query);
-    
-    if (!sighiData) {
-      throw new Error('SIGHI data not loaded');
-    }
-    
-    let foods = [...sighiData.foods];
-    
-    // Apply search filter
-    if (query.q) {
-      const searchTerm = query.q.toLowerCase();
-      foods = foods.filter(food => 
-        food.name_no.toLowerCase().includes(searchTerm) ||
-        food.name_en.toLowerCase().includes(searchTerm)
+    const searchTerm = query.q || query.search;
+
+    // Build query conditions
+    const conditions = [];
+
+    // Search filter (Norwegian or English name)
+    if (searchTerm) {
+      conditions.push(
+        or(
+          like(foods.name_no, `%${searchTerm}%`),
+          like(foods.name_en, `%${searchTerm}%`)
+        )
       );
     }
-    
-    // Apply category filter
+
+    // Category filter
     if (query.category) {
-      foods = foods.filter(food => 
-        food.category.toLowerCase() === query.category.toLowerCase()
-      );
+      conditions.push(eq(foods.category, query.category));
     }
-    
-    // Apply compatibility filter
+
+    // Compatibility filter (convert to string for enum)
     if (query.compatibility !== undefined) {
-      foods = foods.filter(food => food.compatibility === query.compatibility);
+      conditions.push(eq(foods.compatibility, query.compatibility.toString()));
     }
-    
-    // Apply triggers filter
+
+    // Triggers filter - check if JSONB array contains trigger
     if (query.triggers) {
       const triggerFilter = query.triggers.toUpperCase();
-      foods = foods.filter(food => 
-        food.triggers.includes(triggerFilter)
+      conditions.push(
+        sql`${foods.triggers}::jsonb @> ${JSON.stringify([triggerFilter])}::jsonb`
       );
     }
-    
-    // Apply pagination
-    const total = foods.length;
+
+    // Get total count
+    const countQuery = conditions.length > 0
+      ? db.select({ count: sql<number>`count(*)` }).from(foods).where(and(...conditions))
+      : db.select({ count: sql<number>`count(*)` }).from(foods);
+
+    const [{ count: total }] = await countQuery;
+
+    // Get paginated results
     const offset = query.offset || 0;
     const limit = query.limit || 50;
-    const paginatedFoods = foods.slice(offset, offset + limit);
-    
+
+    const foodsQuery = conditions.length > 0
+      ? db.select().from(foods).where(and(...conditions)).limit(limit).offset(offset)
+      : db.select().from(foods).limit(limit).offset(offset);
+
+    const foodsResult = await foodsQuery;
+
     res.json({
       success: true,
       data: {
-        foods: paginatedFoods,
+        foods: foodsResult,
         pagination: {
           total,
           offset,
@@ -121,7 +104,7 @@ router.get('/foods', (req, res, next) => {
           hasMore: offset + limit < total
         },
         filters: {
-          query: query.q,
+          query: searchTerm,
           category: query.category,
           compatibility: query.compatibility,
           triggers: query.triggers
@@ -137,25 +120,21 @@ router.get('/foods', (req, res, next) => {
   }
 });
 
-// GET /api/sighi/foods/:id - Get single food by ID
-router.get('/foods/:id', (req, res, next) => {
+// GET /api/sighi/foods/:id - Get single food by ID from database
+router.get('/foods/:id', async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
-    
+
     if (isNaN(id)) {
       throw new ValidationError('Invalid food ID');
     }
-    
-    if (!sighiData) {
-      throw new Error('SIGHI data not loaded');
-    }
-    
-    const food = sighiData.foods.find((f: any) => f.id === id);
-    
+
+    const [food] = await db.select().from(foods).where(eq(foods.id, id)).limit(1);
+
     if (!food) {
       throw new NotFoundError('Food not found');
     }
-    
+
     res.json({
       success: true,
       data: { food }
@@ -165,15 +144,16 @@ router.get('/foods/:id', (req, res, next) => {
   }
 });
 
-// GET /api/sighi/categories - Get all categories
-router.get('/categories', (req, res, next) => {
+// GET /api/sighi/categories - Get all categories from database
+router.get('/categories', async (req, res, next) => {
   try {
-    if (!sighiData) {
-      throw new Error('SIGHI data not loaded');
-    }
-    
-    const categories = sighiData.metadata.categories || [];
-    
+    const categoriesResult = await db
+      .selectDistinct({ category: foods.category })
+      .from(foods)
+      .orderBy(foods.category);
+
+    const categories = categoriesResult.map(row => row.category);
+
     res.json({
       success: true,
       data: { categories }
@@ -186,18 +166,22 @@ router.get('/categories', (req, res, next) => {
 // GET /api/sighi/triggers - Get all triggers with descriptions
 router.get('/triggers', (req, res, next) => {
   try {
-    if (!sighiData) {
-      throw new Error('SIGHI data not loaded');
-    }
+    // SIGHI trigger descriptions from official PDF
+    const triggerDescriptions = {
+      'H!': 'Lett bedervelig - rask histamindannelse',
+      'H': 'Høyt histamininnhold',
+      'A': 'Andre biogene aminer',
+      'L': 'Liberatorer av mastcellemediatorer (histamin-liberatorer)',
+      'B': 'Blokkere av histaminnedbrytende enzymer (DAO-hemmere)'
+    };
     
-    const triggers = sighiData.metadata.triggers || {};
-    const triggersFound = sighiData.metadata.triggers_found || [];
+    const availableTriggers = ['H!', 'H', 'A', 'L', 'B'];
     
     res.json({
       success: true,
       data: { 
-        triggers,
-        available: triggersFound
+        triggers: triggerDescriptions,
+        available: availableTriggers
       }
     });
   } catch (error) {
@@ -206,20 +190,50 @@ router.get('/triggers', (req, res, next) => {
 });
 
 // GET /api/sighi/stats - Get statistics about the SIGHI database
-router.get('/stats', (req, res, next) => {
+router.get('/stats', async (req, res, next) => {
   try {
-    if (!sighiData) {
-      throw new Error('SIGHI data not loaded');
-    }
-    
+    // Get total foods count
+    const [{ count: totalFoods }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(foods);
+
+    // Get categories count
+    const categoriesResult = await db
+      .selectDistinct({ category: foods.category })
+      .from(foods);
+    const categoriesCount = categoriesResult.length;
+
+    // Get compatibility distribution
+    const compatibilityDistribution = await db
+      .select({
+        compatibility: foods.compatibility,
+        count: sql<number>`count(*)`
+      })
+      .from(foods)
+      .groupBy(foods.compatibility);
+
+    // Get unique triggers
+    const triggersResult = await db
+      .select({ triggers: foods.triggers })
+      .from(foods);
+
+    const uniqueTriggers = new Set<string>();
+    triggersResult.forEach(row => {
+      if (Array.isArray(row.triggers)) {
+        row.triggers.forEach(trigger => uniqueTriggers.add(trigger));
+      }
+    });
+
     const stats = {
-      total_foods: sighiData.metadata.total_foods,
-      categories_count: sighiData.metadata.categories_count,
-      compatibility_distribution: sighiData.metadata.compatibility_distribution,
-      triggers_found: sighiData.metadata.triggers_found,
-      last_updated: sighiData.metadata.extracted_at
+      total_foods: totalFoods,
+      categories_count: categoriesCount,
+      compatibility_distribution: Object.fromEntries(
+        compatibilityDistribution.map(d => [d.compatibility, d.count])
+      ),
+      triggers_found: Array.from(uniqueTriggers),
+      last_updated: new Date().toISOString()
     };
-    
+
     res.json({
       success: true,
       data: { stats }
@@ -230,15 +244,29 @@ router.get('/stats', (req, res, next) => {
 });
 
 // GET /api/sighi/metadata - Get full metadata
-router.get('/metadata', (req, res, next) => {
+router.get('/metadata', async (req, res, next) => {
   try {
-    if (!sighiData) {
-      throw new Error('SIGHI data not loaded');
-    }
-    
+    // Get comprehensive metadata from database
+    const [{ count: totalFoods }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(foods);
+
+    const categoriesResult = await db
+      .selectDistinct({ category: foods.category })
+      .from(foods);
+
+    const metadata = {
+      total_foods: totalFoods,
+      categories: categoriesResult.map(r => r.category),
+      categories_count: categoriesResult.length,
+      source: 'SIGHI Database',
+      version: '1.0',
+      last_updated: new Date().toISOString()
+    };
+
     res.json({
       success: true,
-      data: { metadata: sighiData.metadata }
+      data: { metadata }
     });
   } catch (error) {
     next(error);

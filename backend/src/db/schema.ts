@@ -38,11 +38,13 @@ export const symptomCategoryEnum = pgEnum('symptom_category', [
   'musculoskeletal', 'genitourinary', 'systemic'
 ]);
 export const supplementTypeEnum = pgEnum('supplement_type', [
-  'antihistamine', 'mast_cell_stabilizer', 'dao_supplement', 'probiotic', 
+  'antihistamine', 'mast_cell_stabilizer', 'dao_supplement', 'probiotic',
   'vitamin', 'mineral', 'herbal', 'prescription', 'other'
 ]);
 export const accountStatusEnum = pgEnum('account_status', ['active', 'suspended', 'deleted']);
 export const subscriptionTierEnum = pgEnum('subscription_tier', ['free', 'premium', 'professional']);
+export const captureMethodEnum = pgEnum('capture_method', ['quick', 'detailed', 'retrospective']);
+export const enrichmentStatusEnum = pgEnum('enrichment_status', ['minimal', 'partial', 'complete']);
 
 // Users table - Core user management
 export const users = pgTable('users', {
@@ -53,6 +55,10 @@ export const users = pgTable('users', {
   username: varchar('username', { length: 100 }).notNull().unique(),
   password_hash: varchar('password_hash', { length: 255 }).notNull(),
   
+  // Password reset
+  password_reset_token: varchar('password_reset_token', { length: 255 }),
+  password_reset_expires: timestamp('password_reset_expires'),
+  
   // Personal information
   first_name: varchar('first_name', { length: 100 }),
   last_name: varchar('last_name', { length: 100 }),
@@ -61,6 +67,9 @@ export const users = pgTable('users', {
   
   // Location and preferences
   country: varchar('country', { length: 2 }), // ISO 3166-1 alpha-2
+  city: varchar('city', { length: 100 }), // User's city for automatic weather data
+  latitude: decimal('latitude', { precision: 10, scale: 7 }), // For precise weather data
+  longitude: decimal('longitude', { precision: 10, scale: 7 }), // For precise weather data
   timezone: varchar('timezone', { length: 50 }).notNull().default('Europe/Oslo'),
   language: varchar('language', { length: 2 }).notNull().default('no'), // ISO 639-1
   
@@ -87,7 +96,13 @@ export const users = pgTable('users', {
   // Subscription
   subscription_tier: subscriptionTierEnum('subscription_tier').notNull().default('free'),
   subscription_expires: timestamp('subscription_expires'),
-  
+
+  // Airthings integration (OAuth 2.0 tokens for indoor air quality data)
+  airthings_access_token: text('airthings_access_token'),
+  airthings_refresh_token: text('airthings_refresh_token'),
+  airthings_token_expires_at: timestamp('airthings_token_expires_at'),
+  airthings_connected: boolean('airthings_connected').notNull().default(false),
+
   // Audit fields
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow()
@@ -238,8 +253,9 @@ export const foods = pgTable('foods', {
   
   // Data quality and sourcing
   verified: boolean('verified').notNull().default(false),
-  source: varchar('source', { length: 20 }).notNull().default('sighi'), // sighi, community, fooddata, openfoodfacts
-  
+  source: varchar('source', { length: 20 }).notNull().default('sighi'), // sighi, community, fooddata, openfoodfacts, custom
+  created_by_user_id: integer('created_by_user_id').references(() => users.id, { onDelete: 'set null' }), // For custom user-created foods
+
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow()
 }, (table) => ({
@@ -288,6 +304,27 @@ export const approvedFoods = pgTable('approved_foods', {
   toleranceIdx: index('approved_foods_tolerance_idx').on(table.personal_tolerance)
 }));
 
+// Personal food ratings (separate from safe foods list)
+export const personalFoodRatings = pgTable('personal_food_ratings', {
+  id: serial('id').primaryKey(),
+  food_id: integer('food_id').notNull().references(() => foods.id, { onDelete: 'cascade' }),
+  user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  
+  // Personal rating (0-3 scale matching SIGHI)
+  personal_rating: foodCompatibilityEnum('personal_rating').notNull(),
+  
+  // Optional notes about the rating
+  notes: text('notes').notNull().default(''),
+  
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow()
+}, (table) => ({
+  foodUserIdx: uniqueIndex('personal_food_ratings_food_user_idx').on(table.food_id, table.user_id),
+  foodIdx: index('personal_food_ratings_food_idx').on(table.food_id),
+  userIdx: index('personal_food_ratings_user_idx').on(table.user_id),
+  ratingIdx: index('personal_food_ratings_rating_idx').on(table.personal_rating)
+}));
+
 // Food diary entries (when user consumes food)
 export const foodDiaryEntries = pgTable('food_diary_entries', {
   id: serial('id').primaryKey(),
@@ -318,6 +355,49 @@ export const foodDiaryEntries = pgTable('food_diary_entries', {
   mealTypeIdx: index('food_diary_meal_type_idx').on(table.meal_type)
 }));
 
+// Symptom templates - Predefined symptom types with follow-up questions
+export const symptomTemplates = pgTable('symptom_templates', {
+  id: serial('id').primaryKey(),
+
+  // Basic identification
+  category: symptomCategoryEnum('category').notNull(),
+  name_no: varchar('name_no', { length: 100 }).notNull(),
+  name_en: varchar('name_en', { length: 100 }).notNull(),
+  icon: varchar('icon', { length: 50 }), // Icon name or emoji
+
+  // Severity scale labels for this symptom
+  severity_label_low_no: varchar('severity_label_low_no', { length: 50 }).notNull().default('Umerkelig'),
+  severity_label_mid_no: varchar('severity_label_mid_no', { length: 50 }).notNull().default('Merkbar'),
+  severity_label_high_no: varchar('severity_label_high_no', { length: 50 }).notNull().default('Utålelig'),
+
+  // Follow-up questions configuration (JSONB array of question objects)
+  follow_up_questions: jsonb('follow_up_questions').$type<Array<{
+    id: string;
+    question_no: string;
+    question_en: string;
+    type: 'single_choice' | 'multiple_choice' | 'slider' | 'text' | 'body_map' | 'time_since';
+    options?: string[]; // For choice questions
+    min?: number; // For slider
+    max?: number; // For slider
+    unit?: string; // For slider (e.g., "min", "timer")
+    required?: boolean;
+  }>>(),
+
+  // Body regions commonly affected by this symptom
+  common_body_regions: jsonb('common_body_regions').$type<string[]>(),
+
+  // Display order and metadata
+  display_order: integer('display_order').notNull().default(0),
+  is_active: boolean('is_active').notNull().default(true),
+
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow()
+}, (table) => ({
+  categoryIdx: index('symptom_templates_category_idx').on(table.category),
+  activeIdx: index('symptom_templates_active_idx').on(table.is_active),
+  orderIdx: index('symptom_templates_order_idx').on(table.display_order)
+}));
+
 // Symptom entries - Core MCAS tracking
 export const symptomEntries = pgTable('symptom_entries', {
   id: serial('id').primaryKey(),
@@ -344,6 +424,38 @@ export const symptomEntries = pgTable('symptom_entries', {
   suspected_triggers: jsonb('suspected_triggers').$type<string[]>(),
   environmental_factors: jsonb('environmental_factors').$type<string[]>(),
   
+  // Extended trigger context - Based on patient experience
+  dao_taken_before_meal: boolean('dao_taken_before_meal'),
+  sensory_environment_calm: boolean('sensory_environment_calm'),
+  compression_worn_during_day: boolean('compression_worn_during_day'),
+  physical_fatigue_level: integer('physical_fatigue_level'), // 0-10 when symptom occurred
+  psychological_fatigue_level: integer('psychological_fatigue_level'), // 0-10 when symptom occurred
+  time_since_last_meal_minutes: integer('time_since_last_meal_minutes'),
+  had_heavy_food_today: boolean('had_heavy_food_today'),
+  current_stress_factors: jsonb('current_stress_factors').$type<string[]>(),
+  weather_conditions: jsonb('weather_conditions').$type<{
+    temperature?: number;
+    humidity?: number;
+    pressure?: number;
+    weather_type?: string; // sunny, rainy, stormy, etc
+  }>(),
+  // Airthings indoor air quality data (if available)
+  indoor_air_quality: jsonb('indoor_air_quality').$type<{
+    temperature?: number; // Celsius
+    humidity?: number; // Percentage
+    co2?: number; // ppm
+    voc?: number; // ppb (Volatile Organic Compounds)
+    pm25?: number; // μg/m³ (Particulate Matter 2.5)
+    radon_short_term?: number; // Bq/m³
+    pressure?: number; // mbar
+    room_name?: string; // Which Airthings device/room
+    measured_at?: string; // ISO timestamp when data was captured
+  }>(),
+  menstrual_cycle_phase: varchar('menstrual_cycle_phase', { length: 20 }), // pre, during, post, null
+  sleep_quality_last_night: integer('sleep_quality_last_night'), // 1-10
+  reactions_in_last_24h: integer('reactions_in_last_24h'), // count of previous reactions
+  cumulative_day_stress: integer('cumulative_day_stress'), // 1-10 how stressful the day has been so far
+  
   // Treatment information
   treatment_taken: text('treatment_taken'),
   treatment_effective: boolean('treatment_effective'),
@@ -351,10 +463,22 @@ export const symptomEntries = pgTable('symptom_entries', {
   // AI-calculated correlation data (updated by background analysis)
   correlation_score: real('correlation_score'), // 0-1 probability this was triggered by recent foods
   likely_food_triggers: jsonb('likely_food_triggers').$type<number[]>(), // food_ids with highest correlation
-  
+
+  // Room location tracking (Airthings integration)
+  room_locations: jsonb('room_locations').$type<Array<{
+    room_id: string;
+    room_name: string;
+    time_spent_minutes?: number;
+  }>>(),
+
+  // Capture metadata
+  capture_method: captureMethodEnum('capture_method').notNull().default('quick'),
+  enrichment_status: enrichmentStatusEnum('enrichment_status').notNull().default('minimal'),
+  follow_up_completed_at: timestamp('follow_up_completed_at'),
+
   // User notes
   notes: text('notes'),
-  
+
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow()
 }, (table) => ({
@@ -368,7 +492,7 @@ export const symptomEntries = pgTable('symptom_entries', {
   correlationIdx: index('symptom_entries_correlation_idx').on(table.user_id, table.started_at, table.correlation_score)
 }));
 
-// Daily health metrics for pattern recognition
+// Daily health metrics for pattern recognition - Enhanced with patient insights
 export const healthMetrics = pgTable('health_metrics', {
   id: serial('id').primaryKey(),
   user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -393,6 +517,38 @@ export const healthMetrics = pgTable('health_metrics', {
   blood_pressure_systolic: integer('blood_pressure_systolic'),
   blood_pressure_diastolic: integer('blood_pressure_diastolic'),
   heart_rate: integer('heart_rate'), // bpm
+  
+  // MCAS-specific triggers - Based on patient experience
+  dao_supplement_taken: boolean('dao_supplement_taken').notNull().default(false),
+  compression_worn: boolean('compression_worn').notNull().default(false), // for legs
+  sensory_environment_controlled: boolean('sensory_environment_controlled').notNull().default(false),
+  physical_activity_level: integer('physical_activity_level'), // 0-10 scale
+  weather_temperature: real('weather_temperature'), // celsius
+  weather_humidity: integer('weather_humidity'), // 0-100%
+  weather_barometric_pressure: real('weather_barometric_pressure'), // hPa
+  
+  // Health status factors
+  infection_symptoms: boolean('infection_symptoms').notNull().default(false),
+  incubating_illness: boolean('incubating_illness').notNull().default(false),
+  menstrual_cycle_day: integer('menstrual_cycle_day'), // 1-28+ or null
+  perimenopause_symptoms: boolean('perimenopause_symptoms').notNull().default(false),
+  
+  // Previous day influence
+  had_reactions_yesterday: boolean('had_reactions_yesterday').notNull().default(false),
+  physical_activity_yesterday: integer('physical_activity_yesterday'), // 0-10 scale
+  fatigue_level_yesterday: integer('fatigue_level_yesterday'), // 0-10 scale
+  stress_level_yesterday: integer('stress_level_yesterday'), // 0-10 scale
+  
+  // Daily context factors
+  ate_heavy_food: boolean('ate_heavy_food').notNull().default(false), // blood sugar impacting
+  current_concerns: text('current_concerns'), // what's stressing them
+  controlled_stimuli: boolean('controlled_stimuli').notNull().default(false),
+  physically_tired_when_eating: boolean('physically_tired_when_eating').notNull().default(false),
+  psychologically_tired_when_eating: boolean('psychologically_tired_when_eating').notNull().default(false),
+  
+  // Cumulative load tracking
+  cumulative_stress_score: integer('cumulative_stress_score'), // calculated field 0-100
+  reaction_risk_level: integer('reaction_risk_level'), // calculated field 1-10
   
   // MCAS-specific aggregated data (calculated fields)
   total_symptom_severity: integer('total_symptom_severity'), // Sum of all symptoms that day
@@ -493,7 +649,7 @@ export const triggerAnalyses = pgTable('trigger_analyses', {
 
 // User sessions for security and analytics
 export const userSessions = pgTable('user_sessions', {
-  id: varchar('id', { length: 128 }).primaryKey(), // Session token
+  id: varchar('id', { length: 512 }).primaryKey(), // JWT refresh token
   user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   
   // Session information
@@ -518,6 +674,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   mcasProfile: one(mcasProfiles),
   preferences: one(userPreferences),
   approvedFoods: many(approvedFoods),
+  personalFoodRatings: many(personalFoodRatings),
   foodDiaryEntries: many(foodDiaryEntries),
   symptomEntries: many(symptomEntries),
   healthMetrics: many(healthMetrics),
@@ -528,6 +685,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
 
 export const foodsRelations = relations(foods, ({ many }) => ({
   approvedFoods: many(approvedFoods),
+  personalFoodRatings: many(personalFoodRatings),
   foodDiaryEntries: many(foodDiaryEntries)
 }));
 
@@ -539,6 +697,63 @@ export const symptomEntriesRelations = relations(symptomEntries, ({ one, many })
   triggerAnalyses: many(triggerAnalyses)
 }));
 
+// System Settings table - Store application-wide configuration
+export const systemSettings = pgTable('system_settings', {
+  id: serial('id').primaryKey(),
+  setting_key: varchar('setting_key', { length: 100 }).notNull().unique(),
+  setting_value: text('setting_value'),
+  encrypted: boolean('encrypted').notNull().default(false),
+  description: text('description'),
+  updated_by: integer('updated_by').references(() => users.id),
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow()
+}, (table) => ({
+  keyIdx: uniqueIndex('system_settings_key_idx').on(table.setting_key)
+}));
+
+// Saved Recipes table - User's saved recipes from Spoonacular
+export const savedRecipes = pgTable('saved_recipes', {
+  id: serial('id').primaryKey(),
+  user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  spoonacular_recipe_id: integer('spoonacular_recipe_id').notNull(),
+
+  // Cached recipe data from Spoonacular (full recipe details)
+  recipe_data: jsonb('recipe_data').$type<{
+    id: number;
+    title: string;
+    image?: string;
+    readyInMinutes?: number;
+    servings?: number;
+    sourceUrl?: string;
+    summary?: string;
+    instructions?: string;
+    extendedIngredients?: Array<{
+      id: number;
+      name: string;
+      amount: number;
+      unit: string;
+      original: string;
+    }>;
+    [key: string]: any;
+  }>().notNull(),
+
+  // MCAS-specific data
+  mcas_score: real('mcas_score').notNull(), // 0-100 safety score
+  notes: text('notes').notNull().default(''),
+  times_made: integer('times_made').notNull().default(0),
+
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow()
+}, (table) => ({
+  userIdIdx: index('saved_recipes_user_id_idx').on(table.user_id),
+  spoonacularIdIdx: index('saved_recipes_spoonacular_id_idx').on(table.spoonacular_recipe_id),
+  userSpoonacularUnique: uniqueIndex('saved_recipes_user_spoonacular_unique').on(
+    table.user_id,
+    table.spoonacular_recipe_id
+  ),
+  mcasScoreIdx: index('saved_recipes_mcas_score_idx').on(table.mcas_score)
+}));
+
 // Note: Zod validation schemas will be added when drizzle-zod compatibility is resolved
 
 // Export all table types for use in services
@@ -546,5 +761,11 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Food = typeof foods.$inferSelect;
 export type NewFood = typeof foods.$inferInsert;
+export type PersonalFoodRating = typeof personalFoodRatings.$inferSelect;
+export type NewPersonalFoodRating = typeof personalFoodRatings.$inferInsert;
+export type SymptomTemplate = typeof symptomTemplates.$inferSelect;
+export type NewSymptomTemplate = typeof symptomTemplates.$inferInsert;
 export type SymptomEntry = typeof symptomEntries.$inferSelect;
 export type NewSymptomEntry = typeof symptomEntries.$inferInsert;
+export type SavedRecipe = typeof savedRecipes.$inferSelect;
+export type NewSavedRecipe = typeof savedRecipes.$inferInsert;

@@ -8,6 +8,41 @@
       "when": 1755456514997,
       "tag": "0000_pretty_zeigeist",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1755580953852,
+      "tag": "0001_mixed_whirlwind",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1755627430955,
+      "tag": "0002_red_the_phantom",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1756846197630,
+      "tag": "0003_tired_rocket_racer",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1759382352209,
+      "tag": "0004_aromatic_sersi",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1759414688400,
+      "tag": "0005_chunky_silverclaw",
+      "breakpoints": true
     }
   ]
 }

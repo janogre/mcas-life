@@ -12,12 +12,20 @@ import { PWAPrompt } from './components/PWA/PWAPrompt';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/Auth/LoginPage';
 import { RegisterPage } from './pages/Auth/RegisterPage';
+import { ForgotPasswordPage } from './pages/Auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/Auth/ResetPasswordPage';
+import { AirthingsCallbackPage } from './pages/Auth/AirthingsCallbackPage';
 import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { SymptomLogPage } from './pages/Symptoms/SymptomLogPage';
+import { SymptomRegistrationPage } from './pages/Symptoms/SymptomRegistrationPage';
 import { FoodSearchPage } from './pages/Foods/FoodSearchPage';
+import { ApprovedFoodsPage } from './pages/Foods/ApprovedFoodsPage';
+import { RecipeSearchPage } from './pages/Recipes/RecipeSearchPage';
+import { SavedRecipesPage } from './pages/Recipes/SavedRecipesPage';
 import { AnalyticsPage } from './pages/Analytics/AnalyticsPage';
 import { ProfilePage } from './pages/Profile/ProfilePage';
 import { DiaryPage } from './pages/Diary/DiaryPage';
+import { IndoorClimatePage } from './pages/Environment/IndoorClimatePage';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -44,7 +52,19 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+              {/* OAuth callback routes */}
+              <Route
+                path="/callback"
+                element={
+                  <ProtectedRoute>
+                    <AirthingsCallbackPage />
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Protected routes with layout */}
               <Route
                 path="/dashboard"
@@ -67,11 +87,51 @@ function App() {
                 }
               />
               <Route
+                path="/symptoms/register"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <SymptomRegistrationPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/food"
                 element={
                   <ProtectedRoute>
                     <Layout>
                       <FoodSearchPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/safe-foods"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ApprovedFoodsPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/recipes/search"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <RecipeSearchPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/recipes/saved"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <SavedRecipesPage />
                     </Layout>
                   </ProtectedRoute>
                 }
@@ -106,7 +166,17 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              
+              <Route
+                path="/indoor-climate"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <IndoorClimatePage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+
               {/* 404 fallback */}
               <Route path="*" element={<div className="p-8 text-center">Page not found</div>} />
             </Routes>

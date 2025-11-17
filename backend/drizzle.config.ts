@@ -11,7 +11,7 @@ export default {
   out: './src/db/migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/mcas_life'
+    url: process.env.DATABASE_URL || 'postgresql://mcas_user:mcas_password@localhost:5432/mcas_life'
   },
   
   // Development and debugging options

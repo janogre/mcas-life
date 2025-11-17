@@ -114,24 +114,50 @@ export const mockTransaction = (callback: Function) => {
   });
 };
 
-// Mock database instance
+// Enhanced mock database instance with full query builder support
 export const mockDb = {
   select: vi.fn().mockReturnValue({
     from: vi.fn().mockReturnValue({
       where: vi.fn().mockReturnValue({
-        limit: vi.fn().mockResolvedValue([])
+        limit: vi.fn().mockResolvedValue([]),
+        orderBy: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([])
+        })
+      }),
+      leftJoin: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([]),
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([])
+          })
+        })
+      }),
+      innerJoin: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([]),
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([])
+          })
+        })
       })
     })
   }),
   insert: vi.fn().mockReturnValue({
     values: vi.fn().mockReturnValue({
-      returning: vi.fn().mockResolvedValue([mockUser])
+      returning: vi.fn().mockResolvedValue([mockUser]),
+      onConflictDoNothing: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([mockUser])
+      })
     })
   }),
   update: vi.fn().mockReturnValue({
     set: vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue({ rowCount: 1 })
+      where: vi.fn().mockResolvedValue({ rowCount: 1 }),
+      returning: vi.fn().mockResolvedValue([mockUser])
     })
+  }),
+  delete: vi.fn().mockReturnValue({
+    where: vi.fn().mockResolvedValue({ rowCount: 1 })
   }),
   execute: vi.fn().mockResolvedValue([{ count: 1 }]),
   transaction: vi.fn().mockImplementation(mockTransaction)
@@ -140,6 +166,50 @@ export const mockDb = {
 // Helper function to reset all mocks
 export const resetMocks = () => {
   vi.clearAllMocks();
+  
+  // Reset database mock implementations
+  mockDb.select.mockReturnValue({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue([]),
+        orderBy: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([])
+        })
+      }),
+      leftJoin: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([]),
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([])
+          })
+        })
+      }),
+      innerJoin: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([]),
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([])
+          })
+        })
+      })
+    })
+  });
+  
+  mockDb.insert.mockReturnValue({
+    values: vi.fn().mockReturnValue({
+      returning: vi.fn().mockResolvedValue([mockUser]),
+      onConflictDoNothing: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([mockUser])
+      })
+    })
+  });
+  
+  mockDb.update.mockReturnValue({
+    set: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue({ rowCount: 1 }),
+      returning: vi.fn().mockResolvedValue([mockUser])
+    })
+  });
 };
 
 // Mock client info for testing

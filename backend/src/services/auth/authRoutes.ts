@@ -153,9 +153,12 @@ router.post('/register', async (req: Request, res: Response) => {
 router.post('/login', async (req: Request, res: Response) => {
   try {
     // Validate request body
+    console.log('🔐 Login attempt:', { email: req.body?.email, hasPassword: !!req.body?.password, passwordLength: req.body?.password?.length });
+
     const validationResult = loginSchema.safeParse(req.body);
-    
+
     if (!validationResult.success) {
+      console.log('❌ Validation failed:', validationResult.error);
       handleValidationError(validationResult.error, res);
       return;
     }
@@ -163,10 +166,14 @@ router.post('/login', async (req: Request, res: Response) => {
     const credentials = validationResult.data as LoginCredentials;
     const clientInfo = getClientInfo(req);
 
+    console.log('✅ Validation passed, attempting login for:', credentials.email);
+
     // Authenticate user
     const authResponse = await authService.login(credentials, clientInfo);
 
-    res.json({
+    console.log('✅ Login successful, sending response...');
+
+    const response = {
       success: true,
       data: authResponse,
       meta: {
@@ -174,7 +181,11 @@ router.post('/login', async (req: Request, res: Response) => {
         request_id: res.get('X-Request-ID') || 'unknown',
         version: 'v1'
       }
-    } as ApiResponse<AuthResponse>);
+    } as ApiResponse<AuthResponse>;
+
+    console.log('📤 Response size:', JSON.stringify(response).length, 'bytes');
+    res.json(response);
+    console.log('✨ Response sent!');
 
   } catch (error) {
     console.error('Login error:', error);
@@ -523,6 +534,237 @@ router.post('/verify-token', async (req: Request, res: Response) => {
         timestamp: new Date().toISOString(),
         request_id: res.get('X-Request-ID') || 'unknown',
         version: 'v1'
+      }
+    });
+  }
+});
+
+// Forgot password validation schemas
+const forgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email format')
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1, 'Reset token is required'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain at least one lowercase letter, one uppercase letter, and one number')
+});
+
+/**
+ * POST /api/auth/forgot-password
+ * Initiate password reset process
+ */
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  try {
+    const validation = forgotPasswordSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid input data',
+          details: validation.error.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message
+          })),
+          timestamp: new Date().toISOString(),
+          request_id: res.get('X-Request-ID') || 'unknown'
+        }
+      });
+    }
+
+    const { email } = validation.data;
+
+    try {
+      const resetInfo = await authService.forgotPassword(email);
+      
+      // In development, return token for testing. In production, send email
+      const response: any = {
+        success: true,
+        message: 'If an account with that email exists, a password reset link has been sent.',
+        meta: {
+          timestamp: new Date().toISOString(),
+          request_id: res.get('X-Request-ID') || 'unknown',
+          version: 'v1'
+        }
+      };
+
+      // Include token in development mode for testing
+      if (process.env.NODE_ENV === 'development') {
+        response.data = {
+          resetToken: resetInfo.resetToken,
+          email: resetInfo.email,
+          emailSent: resetInfo.emailSent
+        };
+      } else {
+        response.data = {
+          emailSent: resetInfo.emailSent
+        };
+      }
+
+      res.status(200).json(response);
+
+    } catch (error: any) {
+      if (error.message === 'USER_NOT_FOUND') {
+        // Don't reveal if user exists - return same message
+        return res.status(200).json({
+          success: true,
+          message: 'If an account with that email exists, a password reset link has been sent.',
+          meta: {
+            timestamp: new Date().toISOString(),
+            request_id: res.get('X-Request-ID') || 'unknown',
+            version: 'v1'
+          }
+        });
+      }
+      throw error;
+    }
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to process password reset request',
+        timestamp: new Date().toISOString(),
+        request_id: res.get('X-Request-ID') || 'unknown'
+      }
+    });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Reset password using valid token
+ */
+router.post('/reset-password', async (req: Request, res: Response) => {
+  try {
+    const validation = resetPasswordSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid input data',
+          details: validation.error.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message
+          })),
+          timestamp: new Date().toISOString(),
+          request_id: res.get('X-Request-ID') || 'unknown'
+        }
+      });
+    }
+
+    const { token, password } = validation.data;
+
+    try {
+      await authService.resetPassword(token, password);
+
+      res.status(200).json({
+        success: true,
+        message: 'Password has been reset successfully. Please log in with your new password.',
+        meta: {
+          timestamp: new Date().toISOString(),
+          request_id: res.get('X-Request-ID') || 'unknown',
+          version: 'v1'
+        }
+      });
+
+    } catch (error: any) {
+      if (error.message === 'INVALID_OR_EXPIRED_TOKEN') {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_TOKEN',
+            message: 'Password reset token is invalid or has expired. Please request a new password reset.',
+            timestamp: new Date().toISOString(),
+            request_id: res.get('X-Request-ID') || 'unknown'
+          }
+        });
+      }
+      throw error;
+    }
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to reset password',
+        timestamp: new Date().toISOString(),
+        request_id: res.get('X-Request-ID') || 'unknown'
+      }
+    });
+  }
+});
+
+/**
+ * GET /api/auth/validate-reset-token/:token
+ * Validate reset token without consuming it
+ */
+router.get('/validate-reset-token/:token', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Reset token is required',
+          timestamp: new Date().toISOString(),
+          request_id: res.get('X-Request-ID') || 'unknown'
+        }
+      });
+    }
+
+    try {
+      const userInfo = await authService.validateResetToken(token);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          valid: true,
+          email: userInfo.email
+        },
+        meta: {
+          timestamp: new Date().toISOString(),
+          request_id: res.get('X-Request-ID') || 'unknown',
+          version: 'v1'
+        }
+      });
+
+    } catch (error: any) {
+      if (error.message === 'INVALID_OR_EXPIRED_TOKEN') {
+        return res.status(400).json({
+          success: false,
+          data: {
+            valid: false
+          },
+          error: {
+            code: 'INVALID_TOKEN',
+            message: 'Password reset token is invalid or has expired',
+            timestamp: new Date().toISOString(),
+            request_id: res.get('X-Request-ID') || 'unknown'
+          }
+        });
+      }
+      throw error;
+    }
+
+  } catch (error) {
+    console.error('Validate reset token error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to validate reset token',
+        timestamp: new Date().toISOString(),
+        request_id: res.get('X-Request-ID') || 'unknown'
       }
     });
   }

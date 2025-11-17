@@ -19,34 +19,21 @@ import {
   mockTokenPayload
 } from './testHelpers.js';
 
-// Mock bcrypt
-vi.mock('bcrypt', () => ({
-  default: {
-    hash: vi.fn(),
-    compare: vi.fn()
-  }
-}));
-
-// Mock jsonwebtoken
-vi.mock('jsonwebtoken', () => ({
-  default: {
-    sign: vi.fn(),
-    verify: vi.fn()
-  }
-}));
+// Note: All mocks are defined in setup.ts and automatically applied
 
 describe('AuthService', () => {
   let authService: AuthService;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     resetMocks();
-    authService = new AuthService();
     
     // Setup default mock implementations
-    vi.mocked(bcrypt.hash).mockResolvedValue('hashed_password');
-    vi.mocked(bcrypt.compare).mockResolvedValue(true);
-    vi.mocked(jwt.sign).mockReturnValue('mock_token');
-    vi.mocked(jwt.verify).mockReturnValue(mockTokenPayload);
+    vi.mocked(bcrypt.hash).mockResolvedValue('hashed_password' as never);
+    vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+    vi.mocked(jwt.sign).mockReturnValue('mock_token' as never);
+    vi.mocked(jwt.verify).mockReturnValue(mockTokenPayload as never);
+    
+    authService = new AuthService();
   });
 
   describe('User Registration', () => {

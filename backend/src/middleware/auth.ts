@@ -5,8 +5,10 @@ import { AuthenticationError } from './errorHandler.js';
 export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
+    userId: number;
     email: string;
     name: string;
+    role: string;
   };
 }
 
@@ -29,17 +31,20 @@ export const authMiddleware = (
     }
     
     const decoded = jwt.verify(token, process.env['JWT_SECRET']) as {
-      id: string;
+      userId: number;
       email: string;
-      name: string;
+      role: string;
+      type: string;
       iat: number;
       exp: number;
     };
     
     req.user = {
-      id: decoded.id,
+      id: decoded.userId,
+      userId: decoded.userId,
       email: decoded.email,
-      name: decoded.name
+      name: decoded.email, // Use email as name fallback
+      role: decoded.role
     };
     
     next();
@@ -74,15 +79,20 @@ export const optionalAuthMiddleware = (
     }
     
     const decoded = jwt.verify(token, process.env['JWT_SECRET']) as {
-      id: string;
+      userId: number;
       email: string;
-      name: string;
+      role: string;
+      type: string;
+      iat: number;
+      exp: number;
     };
     
     req.user = {
-      id: decoded.id,
+      id: decoded.userId,
+      userId: decoded.userId,
       email: decoded.email,
-      name: decoded.name
+      name: decoded.email, // Use email as name fallback
+      role: decoded.role
     };
     
     next();
@@ -91,3 +101,26 @@ export const optionalAuthMiddleware = (
     next();
   }
 };
+
+// Alias for compatibility
+export const authenticate = authMiddleware;
+
+// Role-based authorization middleware
+export function requireRole(allowedRoles: string[]) {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(new AuthenticationError('Authentication required'));
+    }
+    
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Insufficient permissions',
+        required_roles: allowedRoles,
+        user_role: req.user.role
+      });
+    }
+    
+    next();
+  };
+}

@@ -6,38 +6,13 @@
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { AuthService } from '../services/auth/authService.js';
+import { mockDb } from '../__tests__/setup.js';
 
 // Mock environment variables for testing
 process.env.JWT_SECRET = 'test-secret-key';
 process.env.BCRYPT_ROUNDS = '4';
 
-// Mock the database
-const mockDb = {
-  select: vi.fn(),
-  insert: vi.fn(),
-  update: vi.fn(),
-  transaction: vi.fn()
-};
-
-// Mock bcrypt
-const mockBcrypt = {
-  hash: vi.fn(),
-  compare: vi.fn()
-};
-
-// Mock jwt
-const mockJwt = {
-  sign: vi.fn(),
-  verify: vi.fn()
-};
-
-// Mock the modules
-vi.mock('../../db/index.js', () => ({
-  db: mockDb
-}));
-
-vi.mock('bcrypt', () => mockBcrypt);
-vi.mock('jsonwebtoken', () => mockJwt);
+// Note: Mocks are defined in setup.ts and automatically applied
 
 describe('AuthService', () => {
   let authService: AuthService;
@@ -75,62 +50,71 @@ describe('AuthService', () => {
     deviceInfo: 'Test Device'
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    authService = new AuthService();
-
+    
+    // Get the mocked modules
+    const bcrypt = await import('bcrypt');
+    const jwt = await import('jsonwebtoken');
+    
     // Setup default mock implementations
-    mockBcrypt.hash.mockResolvedValue('hashed_password');
-    mockBcrypt.compare.mockResolvedValue(true);
-    mockJwt.sign.mockReturnValue('mock_token');
-    mockJwt.verify.mockReturnValue({
+    vi.mocked(bcrypt.hash).mockResolvedValue('hashed_password' as never);
+    vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+    vi.mocked(jwt.sign).mockReturnValue('mock_token' as never);
+    vi.mocked(jwt.verify).mockReturnValue({
       userId: 1,
       email: 'test@mcaslife.no',
       role: 'patient',
       type: 'access'
-    });
+    } as never);
+    
+    authService = new AuthService();
   });
 
   describe('Password Security', () => {
     test('should use proper bcrypt rounds for hashing', async () => {
-      // Mock the database chain
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]) // No existing user
-          })
-        })
-      });
-
+      const bcrypt = await import('bcrypt');
+      
+      // Mock database responses for successful registration
+      const selectChain = mockDb.select();
+      selectChain.from().where().limit.mockResolvedValue([]);
+      
+      // Mock transaction
       mockDb.transaction.mockImplementation(async (callback) => {
-        return await callback({
+        const txMock = {
           insert: vi.fn().mockReturnValue({
             values: vi.fn().mockReturnValue({
               returning: vi.fn().mockResolvedValue([mockUser])
             })
+          }),
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([])
+              })
+            })
           })
-        });
+        };
+        return await callback(txMock);
       });
 
       await authService.register(mockRegistrationData, mockClientInfo);
 
-      expect(mockBcrypt.hash).toHaveBeenCalledWith('TestPass123!', 4);
+      expect(bcrypt.hash).toHaveBeenCalledWith('TestPass123!', 4);
     });
 
     test('should verify passwords correctly', async () => {
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([mockUser])
-          })
-        })
-      });
-
-      mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue({ rowCount: 1 })
-        })
-      });
+      const bcrypt = await import('bcrypt');
+      
+      // Mock database responses
+      const selectChain = mockDb.select();
+      selectChain.from().where().limit.mockResolvedValue([mockUser]);
+      
+      const updateChain = mockDb.update();
+      updateChain.set().where.mockResolvedValue({ rowCount: 1 });
+      
+      const insertChain = mockDb.insert();
+      insertChain.values.mockResolvedValue({ id: 'session-id' });
 
       await authService.login({
         email: 'test@mcaslife.no',
@@ -138,15 +122,16 @@ describe('AuthService', () => {
         remember_me: false
       }, mockClientInfo);
 
-      expect(mockBcrypt.compare).toHaveBeenCalledWith('TestPass123!', 'hashed_password');
+      expect(bcrypt.compare).toHaveBeenCalledWith('TestPass123!', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewKd3DYOe7g8QO8W');
     });
   });
 
   describe('Token Generation', () => {
-    test('should generate access and refresh tokens', () => {
-      mockJwt.sign
-        .mockReturnValueOnce('access_token_123')
-        .mockReturnValueOnce('refresh_token_456');
+    test('should generate access and refresh tokens', async () => {
+      const jwt = await import('jsonwebtoken');
+      vi.mocked(jwt.sign)
+        .mockReturnValueOnce('access_token_123' as never)
+        .mockReturnValueOnce('refresh_token_456' as never);
 
       const result = authService['generateTokens'](1, 'test@test.com', 'patient');
 
@@ -157,13 +142,15 @@ describe('AuthService', () => {
         token_type: 'Bearer'
       });
 
-      expect(mockJwt.sign).toHaveBeenCalledTimes(2);
+      expect(jwt.sign).toHaveBeenCalledTimes(2);
     });
 
-    test('should create tokens with correct payload structure', () => {
+    test('should create tokens with correct payload structure', async () => {
+      const jwt = await import('jsonwebtoken');
+      
       authService['generateTokens'](1, 'test@test.com', 'patient');
 
-      expect(mockJwt.sign).toHaveBeenCalledWith(
+      expect(jwt.sign).toHaveBeenCalledWith(
         {
           userId: 1,
           email: 'test@test.com',

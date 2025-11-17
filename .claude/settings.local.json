@@ -9,9 +9,19 @@
       "Bash(tsx:*)",
       "Bash(npx tsx:*)",
       "Bash(grep:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(curl:*)",
+      "Bash(npx drizzle-kit migrate:*)",
+      "Bash(psql:*)",
+      "Bash(npx drizzle-kit:*)",
+      "Bash(rm:*)",
+      "Bash(npx tsc:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\c\\Kode-prosjekter-lokalt\\MCAS-life"
+    ]
   }
 }
