@@ -15,10 +15,14 @@
     "db:migrate": "tsx src/scripts/migrate.ts",
     "db:seed": "tsx src/scripts/seed.ts",
     "db:studio": "drizzle-kit studio",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:test": "tsx src/scripts/testSupabaseConnection.ts",
     "demo:auth": "tsx src/scripts/authDemo.ts",
     "demo:food": "tsx src/scripts/foodDemo.ts",
     "demo:analytics": "tsx src/scripts/analyticsDemo.ts",
-    "import:sighi": "tsx src/scripts/importSighiData.ts"
+    "import:sighi": "tsx src/scripts/importSighiData.ts",
+    "supabase:setup": "npm run db:push && npm run import:sighi && npm run db:test"
   },
   "keywords": [
     "mcas",

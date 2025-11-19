@@ -15,8 +15,15 @@ dotenv.config();
 
 // Environment variables for database configuration
 const DATABASE_URL = process.env['DATABASE_URL'] || 'postgresql://localhost:5432/mcas_life';
-console.log('🔍 DATABASE_URL loaded:', DATABASE_URL);
-const DATABASE_SSL = process.env['NODE_ENV'] === 'production';
+
+// Mask password in logs for security
+const maskedUrl = DATABASE_URL.replace(/:[^:@]+@/, ':****@');
+console.log('🔍 DATABASE_URL loaded:', maskedUrl);
+
+// SSL configuration - Supabase requires SSL
+const DATABASE_SSL_ENV = process.env['DATABASE_SSL'];
+const DATABASE_SSL = DATABASE_SSL_ENV === 'require' || DATABASE_SSL_ENV === 'true' || process.env['NODE_ENV'] === 'production';
+
 const DATABASE_MAX_CONNECTIONS = parseInt(process.env['DATABASE_MAX_CONNECTIONS'] || '10');
 const DATABASE_IDLE_TIMEOUT = parseInt(process.env['DATABASE_IDLE_TIMEOUT'] || '30');
 
@@ -24,21 +31,27 @@ const DATABASE_IDLE_TIMEOUT = parseInt(process.env['DATABASE_IDLE_TIMEOUT'] || '
 const postgresConnection = postgres(DATABASE_URL, {
   max: DATABASE_MAX_CONNECTIONS,
   idle_timeout: DATABASE_IDLE_TIMEOUT,
-  ssl: DATABASE_SSL,
-  
+
+  // SSL configuration for Supabase and production
+  ssl: DATABASE_SSL ? (DATABASE_SSL_ENV === 'require' ? 'require' : true) : false,
+
   // Connection pool optimizations for symptom correlation queries
   prepare: true,                    // Use prepared statements for performance
   transform: postgres.camel,        // Transform snake_case to camelCase
-  
+
   // HIPAA-compliant logging configuration
   debug: process.env['NODE_ENV'] === 'development',
-  
+
   // Error handling
   onnotice: (notice) => {
     if (process.env['NODE_ENV'] === 'development') {
       console.log('PostgreSQL notice:', notice);
     }
-  }
+  },
+
+  // Connection retry logic for cloud databases
+  connect_timeout: 10,
+  max_lifetime: 60 * 60  // 1 hour max connection lifetime for cloud databases
 });
 
 // Create Drizzle instance with schema and connection

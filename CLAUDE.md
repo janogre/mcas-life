@@ -69,8 +69,12 @@ npm run dev
 
 # Database operations
 npm run db:migrate          # Run Drizzle migrations
+npm run db:push            # Push schema to database (faster for Supabase)
+npm run db:generate        # Generate new migration from schema changes
 npm run db:studio          # Open Drizzle Studio GUI
+npm run db:test            # Test database connection (especially for Supabase)
 npm run import:sighi       # Import SIGHI food data (849 foods)
+npm run supabase:setup     # Full Supabase setup (push + import + test)
 
 # Testing and linting
 npm run test               # Vitest test suite
@@ -145,6 +149,8 @@ npm run preview           # Preview production build
 ## Environment Configuration
 
 ### Required Environment Variables
+
+#### Option 1: Local PostgreSQL (Docker)
 ```bash
 # Backend (.env)
 DATABASE_URL=postgresql://mcas_user:mcas_password@localhost:5432/mcas_life
@@ -156,7 +162,25 @@ PORT=3001
 VITE_API_URL=http://localhost:3001/api
 ```
 
+#### Option 2: Supabase (Cloud) - RECOMMENDED
+```bash
+# Backend (.env)
+DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.xxxxx.supabase.co:5432/postgres
+DATABASE_SSL=require
+DATABASE_MAX_CONNECTIONS=5
+JWT_SECRET=your-production-jwt-secret
+NODE_ENV=development
+PORT=3001
+
+# Frontend (.env)
+VITE_API_URL=http://localhost:3001/api
+```
+
+**See SUPABASE_QUICKSTART.md for 5-minute setup guide!**
+
 ### Database Setup
+
+#### Local PostgreSQL Setup
 ```bash
 # PostgreSQL setup
 createdb mcas_life
@@ -166,6 +190,20 @@ createuser mcas_user --pwprompt
 cd backend
 npm run db:migrate
 npm run import:sighi
+```
+
+#### Supabase Setup (Recommended)
+```bash
+# 1. Create Supabase project at supabase.com
+# 2. Copy connection string to .env
+# 3. Run one-liner setup:
+cd backend
+npm run supabase:setup
+
+# Or manual steps:
+npm run db:push          # Push schema to Supabase
+npm run import:sighi     # Import 849 SIGHI foods
+npm run db:test          # Verify connection
 ```
 
 ## MCAS-Specific Domain Logic
