@@ -63,10 +63,10 @@ if (process.env['NODE_ENV'] === 'development') {
   });
 }
 
-// Rate limiting - Generous limits for development
+// Rate limiting - Very generous limits for development to avoid issues with bulk operations
 const limiter = rateLimit({
-  windowMs: parseInt(process.env['RATE_LIMIT_WINDOW_MS'] || '900000'), // 15 minutes
-  max: parseInt(process.env['RATE_LIMIT_MAX_REQUESTS'] || '10000'), // 10000 requests per 15 min window for development
+  windowMs: parseInt(process.env['RATE_LIMIT_WINDOW_MS'] || '60000'), // 1 minute (faster reset)
+  max: parseInt(process.env['RATE_LIMIT_MAX_REQUESTS'] || '1000'), // 1000 requests per minute for development
   message: {
     error: 'Too many requests from this IP, please try again later.'
   },
@@ -75,8 +75,10 @@ const limiter = rateLimit({
   // Skip rate limiting for certain paths in development
   skip: (req) => {
     if (process.env['NODE_ENV'] === 'development') {
-      // Skip rate limiting for health checks and auth refresh
-      return req.path === '/api/health' || req.path === '/api/auth/refresh';
+      // Skip rate limiting for health checks, auth refresh, and food detail fetching
+      return req.path === '/api/health'
+        || req.path === '/api/auth/refresh'
+        || req.path.startsWith('/api/foods/') && /\/api\/foods\/\d+$/.test(req.path); // Skip /api/foods/:id
     }
     return false;
   }
@@ -107,7 +109,7 @@ app.use('/api/symptom-templates', symptomTemplateRoutes); // Symptom templates f
 app.use('/api/diary', authenticateToken, diaryRoutes);
 app.use('/api/users', authenticateToken, usersRoutes);
 app.use('/api/weather', weatherRoutes); // Weather data for symptom correlation
-app.use('/api/airthings', authenticateToken, airthingsRoutesV2); // Airthings indoor air quality integration (V2 - Client Credentials)
+app.use('/api/airthings', airthingsRoutesV2); // Airthings indoor air quality integration (Client Credentials)
 app.use('/api/settings', authenticateToken, settingsRoutes); // System settings management
 
 // Root endpoint

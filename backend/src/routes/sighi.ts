@@ -42,6 +42,11 @@ const searchQuerySchema = z.object({
 // GET /api/sighi/foods - Search foods from database
 router.get('/foods', async (req, res, next) => {
   try {
+    // Disable ETag caching to ensure fresh data after schema changes
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
     const query = searchQuerySchema.parse(req.query);
     const searchTerm = query.q || query.search;
 
@@ -93,6 +98,17 @@ router.get('/foods', async (req, res, next) => {
 
     const foodsResult = await foodsQuery;
 
+    // Debug: Log first food to check if display names are included
+    if (foodsResult.length > 0) {
+      console.log('🔍 First food result:', {
+        id: foodsResult[0].id,
+        name_en: foodsResult[0].name_en,
+        display_name_en: foodsResult[0].display_name_en,
+        display_name_no: foodsResult[0].display_name_no,
+        sighi_uncertainty_level: foodsResult[0].sighi_uncertainty_level
+      });
+    }
+
     res.json({
       success: true,
       data: {
@@ -123,6 +139,11 @@ router.get('/foods', async (req, res, next) => {
 // GET /api/sighi/foods/:id - Get single food by ID from database
 router.get('/foods/:id', async (req, res, next) => {
   try {
+    // Disable ETag caching to ensure fresh data after schema changes
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
     const id = parseInt(req.params.id);
 
     if (isNaN(id)) {

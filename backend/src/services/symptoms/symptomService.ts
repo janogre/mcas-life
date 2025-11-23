@@ -1272,6 +1272,29 @@ export class SymptomService {
       throw error;
     }
   }
+
+  /**
+   * Delete a symptom entry
+   * Only allows users to delete their own symptoms
+   */
+  static async deleteSymptom(userId: number, symptomId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(symptomEntries)
+        .where(
+          and(
+            eq(symptomEntries.id, symptomId),
+            eq(symptomEntries.user_id, userId)
+          )
+        )
+        .returning();
+
+      return result.length > 0;
+    } catch (error) {
+      console.error('Error deleting symptom:', error);
+      throw error;
+    }
+  }
 }
 
 export type { SymptomEntry };

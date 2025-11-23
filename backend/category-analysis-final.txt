@@ -1,0 +1,186 @@
+🔍 DATABASE_URL loaded: postgresql://postgres.yvdvurqvxujeaibuwqgg:****@aws-1-eu-west-2.pooler.supabase.com:6543/postgres
+📊 MCAS-Life Category Quality Check
+
+================================================================================
+
+📁 Step 1: Reading JSON source data...
+   Total foods in JSON: 1001
+
+📋 Step 2: Extracting unique categories from JSON...
+   Unique categories in JSON: 25
+
+   Categories in JSON:
+    1. Animalske matvarer - Meieriprodukter     (4 foods)
+    2. Beverages                                (214 foods)
+    3. Dairy products                           (55 foods)
+    4. Drikke - Alcoholic beverages             (12 foods)
+    5. Drikke - Caffeine drinks                 (1 foods)
+    6. Eggs                                     (4 foods)
+    7. Fats and oils                            (15 foods)
+    8. Fish                                     (14 foods)
+    9. Food additives                           (154 foods)
+   10. Fruits                                   (114 foods)
+   11. Herbs                                    (22 foods)
+   12. Meat                                     (46 foods)
+   13. Mushrooms, fungi and algae               (17 foods)
+   14. Nuts                                     (13 foods)
+   15. Preparations, mixtures                   (3 foods)
+   16. Sea food                                 (11 foods)
+   17. Seeds                                    (5 foods)
+   18. Spices, seasoning, aroma                 (39 foods)
+   19. Starch suppliers                         (57 foods)
+   20. Sweeteners                               (32 foods)
+   21. Ukjent kategori                          (52 foods)
+   22. Vegetabilske matvarer - Frukt            (2 foods)
+   23. Vegetabilske matvarer - Stivelse         (1 foods)
+   24. Vegetables                               (110 foods)
+   25. Vitamins, dietary minerals, trace elements, stimulants (4 foods)
+
+
+🔍 Step 3: Querying database for categories...
+Query: select "id", "name_no", "name_en", "category" from "foods"
+   Total foods in database: 962
+   Unique categories in database: 26
+
+   Categories in database:
+    1. Animalske matvarer - Meieriprodukter     (4 foods)
+    2. Beverages                                (169 foods)
+    3. Dairy products                           (57 foods)
+    4. Drikke - Alcoholic beverages             (19 foods)
+    5. Drikke - Alkohol                         (1 foods)
+    6. Drikke - Caffeine drinks                 (1 foods)
+    7. Eggs                                     (4 foods)
+    8. Fats and oils                            (15 foods)
+    9. Fish                                     (16 foods)
+   10. Food additives                           (137 foods)
+   11. Fruits                                   (90 foods)
+   12. Herbs                                    (21 foods)
+   13. Meat                                     (54 foods)
+   14. Mushrooms, fungi and algae               (24 foods)
+   15. Nuts                                     (13 foods)
+   16. Preparations, mixtures                   (3 foods)
+   17. Sea food                                 (12 foods)
+   18. Seeds                                    (5 foods)
+   19. Spices, seasoning, aroma                 (38 foods)
+   20. Starch suppliers                         (55 foods)
+   21. Sweeteners                               (29 foods)
+   22. Ukjent kategori                          (85 foods)
+   23. Vegetabilske matvarer - Frukt            (2 foods)
+   24. Vegetabilske matvarer - Stivelse         (1 foods)
+   25. Vegetables                               (101 foods)
+   26. Vitamins, dietary minerals, trace elements, stimulants (6 foods)
+
+
+⚠️  Step 4: Identifying foods with "Ukjent kategori"...
+   Foods with "Ukjent kategori": 85
+
+   List of foods with "Ukjent kategori":
+     1. ID:1367 - cellulose methyl ether, methyl cellulose, (Cellulose methyl ether, methyl cellulose)
+     2. ID:1741 - Brilliant Black BN, Brilliant Black PN, Brilliant Black (Brilliant svart bn, brilliant svart pn, brilliant svart)
+     3. ID:1796 - Brilliant Black BN, Brilliant Black PN, Brilliant Black (Brilliant svart bn, brilliant svart pn, brilliant svart)
+     4. ID: 970 - common evening-primrose oil (Oenothera biennis) (Common evening-primrose oil (oenothera biennis))
+     5. ID: 971 - evening primrose oil (Oenothera biennis) (Nattlysolje (oenothera biennis))
+     6. ID:1010 - chard, Swiss chard (Beta vulgaris subsp. vulgaris) (mangold, sveitsisk mangold (beta vulgaris subsp. vulgaris))
+     7. ID:1052 - Savoy cabbage (savoy kål)
+     8. ID:1091 - Swiss chard (Beta vulgaris subsp. vulgaris) (sveitserbladbete (beta vulgaris subsp. vulgaris))
+     9. ID:1170 - Solanum muricatum, pepino, pepino dulce, pepino (Solanum muricatum, pepino, pepino dulce, pepino)
+    10. ID:1190 - sumac, sumach, Sicilian sumac, Rhus coraria (Sumak, sumach, sicilian sumak, rhus coraria)
+    11. ID:1247 - Rhus coriaria, Sicilian sumac, tanner’s sumach, elm- (Rhus coriaria, sicilian sumak, tanner’s sumach, elm-)
+    12. ID:1265 - ?healing spring water with lots of sulfur, fluorine, (healing spring vann med lots av sulfur, fluorine)
+    13. ID:1346 - calcium polyphosphate, E452 (calcium polyphosphate, e452)
+    14. ID:1365 - carob, carob powder, carob pod meal (Carob, carob powder, carob pod meal)
+    15. ID:1366 - cellulose ethyl ether, ethyl cellulose, ethylcellulose, (Cellulose ethyl ether, ethyl cellulose, ethylcellulose)
+    16. ID:1386 - E1201, polyvinylpyrrolidone, PVP, polyvidone, (E1201, polyvinylpyrrolidone, pvp, polyvidone)
+    17. ID:1443 - E380, ammonium citrate, triammonium citrate (E380, ammonium citrate, triammonium citrate)
+    18. ID:1480 - fizzy drinks (Fizzy drinks)
+    19. ID:1540 - Polyvinylpyrrolidone, PVP, polyvidone, povidone, (Polyvinylpyrrolidone, pvp, polyvidone, povidone)
+    20. ID:1561 - Red 2G, acid red 1, azogeranine, azohpoloxine, E128 (Rød 2g, acid rød 1, azogeranine, azohpoloxine, e128)
+    21. ID:1580 - Povidone, polyvidone, polyvinylpyrrolidone, PVP, (Povidone, polyvidone, polyvinylpyrrolidone, pvp)
+    22. ID:1613 - vanillin (synthetic) (Vanillin (synthetic))
+    23. ID: 949 - tapioca starch (Tapioka starch)
+    24. ID: 931 - bulgur, burghul, riffoth (Bulgur, burghul, riffoth)
+    25. ID: 969 - pecan nut (Pecan nut)
+    26. ID: 988 - linseed oil, flaxseed oil, flax oil (Linfrøolje, linfrøolje, linfrø oil)
+    27. ID: 989 - primrose oil (Oenothera biennis) (Primrose oil (oenothera biennis))
+    28. ID: 990 - walnut oil (valnøttolje)
+    29. ID: 991 - aubergine (aubergine)
+    30. ID: 972 - flaxseed oil, flax oil, linseed oil (Linfrøolje, linfrø oil, linfrøolje)
+    31. ID:1008 - bok choy (Bok choy)
+    32. ID:1009 - brinjal (brinjal)
+    33. ID:1029 - ladies’ fingers, okra, ochro (Ladies’ fingers, okra, ochro)
+    34. ID:1049 - okra, okro, ochro, ladies’ fingers (Okra, okro, ochro, ladies’ fingers)
+    35. ID:1050 - pok choi (Pok choi)
+    36. ID:1051 - red cabbage (rød kål)
+    37. ID:1053 - silver beet, silverbeet, chard (sølv bete, sølvbete, mangold)
+    38. ID:1069 - elderberry, elderberries (Hyllebær, elderberries)
+    39. ID:1070 - kiwi fruit (kiwi frukt)
+    40. ID:1090 - stinging nettle, common nettle, burn nettle (Urtica (stikknestle, vanlig nestle, brennestle (urtica)
+    41. ID:1129 - grapes (druer)
+    42. ID:1130 - guava (guava)
+    43. ID:1151 - quince (kvede)
+    44. ID:1152 - flax seeds (Linfrø seeds)
+    45. ID:1150 - lemon peel, lemon zest (sitronskall, sitron zest)
+    46. ID:1210 - spirulina (Arthrospira) (Spirulina (arthrospira))
+    47. ID:1208 - lingzhi, Ganoderma lingzhi, reishi (Lingzhi, ganoderma lingzhi, reishi)
+    48. ID:1209 - reishi, lingzhi, Ganoderma lingzhi (Reishi, lingzhi, ganoderma lingzhi)
+    49. ID:1227 - liquorice root (lakrisrot)
+    50. ID:1246 - meat extract (kjøttekstrakt)
+    51. ID:1266 - liquor, clear (colourless) (brennevin, klar (fargeløs))
+    52. ID:1267 - schnapps, clear (colourless) (snaps, klar (fargeløs))
+    53. ID:1268 - spirits, clear (colourless) (brennevin, klar (fargeløs))
+    54. ID:1285 - stinging nettle herbal tea (Urtica dioica) (stinging nesle herbal tea (urtica dioica))
+    55. ID:1305 - agar, agar-agar, E406 (agar, agar-agar, e406)
+    56. ID:1325 - ammonium citrate, triammonium citrate, E380 (ammonium citrate, triammonium citrate, e380)
+    57. ID:1384 - dicalcium phosphate, dicalcium hydrogen (dicalcium phosphate, dicalcium hydrogen)
+    58. ID:1385 - dipotassium phosphate, dipotassium hydrogen (dipotassium phosphate, dipotassium hydrogen)
+    59. ID:1601 - starch, amylum (Starch, amylum)
+    60. ID:1387 - E1202, polyvinylpolypyrrolidone (E1202, polyvinylpolypyrrolidone)
+    61. ID:1461 - E406, agar, agar-agar (E406, agar, agar-agar)
+    62. ID:1481 - flavourings, flavorings (Flavourings, flavorings)
+    63. ID:1519 - hypromellose, hydroxypropyl methylcellulose, (Hypromellose, hydroxypropyl methylcellulose)
+    64. ID:1520 - Menthol (Menthol)
+    65. ID:1521 - modified starch, starch derivatives (Modified starch, starch derivatives)
+    66. ID:1522 - Monocalcium phosphate, E340 (Monocalcium phosphate, e340)
+    67. ID:1539 - Polyvinylpolypyrrolidone, E1202 (Polyvinylpolypyrrolidone, e1202)
+    68. ID:1559 - Monopotassium phosphate, E340 (Monopotassium phosphate, e340)
+    69. ID:1560 - Potassium polyphosphate, E452 (Potassium polyphosphate, e452)
+    70. ID:1562 - salicylic acid (salicylic acid)
+    71. ID:1563 - Sodium polyphosphate, E452 (Sodium polyphosphate, e452)
+    72. ID:1582 - Sodium-calcium polyphosphate, E452 (Sodium-calcium polyphosphate, e452)
+    73. ID:1600 - starch derivatives, modified starch (Starch derivatives, modified starch)
+    74. ID:1581 - Soapwort extract (Saponaria) in Halva (Soapwort extract (saponaria) in halva)
+    75. ID:1610 - Triammonium citrate, ammonium citrate, E380 (Triammonium citrate, ammonium citrate, e380)
+    76. ID:1611 - Tricalcium phosphate, E340 (Tricalcium phosphate, e340)
+    77. ID:1612 - Tripotassium phosphate, E340 (Tripotassium phosphate, e340)
+    78. ID:1614 - calcium (Calcium)
+    79. ID:1615 - fir shoot, fir buds (Fir shoot, fir buds)
+    80. ID:1616 - guaranÆ (Paullinia cupana) (Guaranæ (paullinia cupana))
+    81. ID:1617 - iodized table salt (Iodized table salt)
+    82. ID:1630 - kimchi (Kimchi)
+    83. ID:1631 - seitan (Seitan)
+    84. ID:1637 - razil nut (razil nut)
+    85. ID:1649 - GuaranÆ (Paullinia cupana) (GuaranÆ (Paullinia cupana))
+
+
+🔄 Step 5: Cross-referencing with JSON source data...
+   Foods that can be fixed: 0
+
+
+🔎 Step 6: Checking for category mismatches...
+   Foods with mismatched categories: 0
+
+
+📈 SUMMARY
+================================================================================
+Total foods in JSON:                    1001
+Total foods in database:                962
+Unique categories in JSON:              25
+Unique categories in database:          26
+Foods with "Ukjent kategori":           85
+Foods with fixable unknown category:    0
+Foods with mismatched category:         0
+Total fixes needed:                     0
+
+✅ Analysis complete!
+
+💾 Results saved to: C:\Kode-prosjekter-lokalt\MCAS-life\backend\category-analysis-results.json

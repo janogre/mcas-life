@@ -9,7 +9,7 @@ import * as path from 'path';
 import { foodService } from '../services/food/foodService.js';
 
 // Path to our corrected JSON file
-const UPDATED_JSON_PATH = path.join(process.cwd(), '..', '..', 'database', 'sighi-foods-data.json');
+const UPDATED_JSON_PATH = path.join(process.cwd(), '..', 'database', 'sighi-foods-data.json');
 
 console.log('🍎 MCAS-Life SIGHI Data Import (from updated JSON)');
 console.log('==================================================\n');

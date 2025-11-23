@@ -90,13 +90,6 @@ export function Header() {
                       <ChefHat className="w-4 h-4" />
                       <span>Oppskrifter</span>
                     </Link>
-                    <Link
-                      to="/diary"
-                      className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"
-                    >
-                      <BookOpen className="w-4 h-4" />
-                      <span>Dagbok mat</span>
-                    </Link>
                   </div>
                 </div>
               )}
@@ -107,6 +100,12 @@ export function Header() {
               className="text-gray-600 hover:text-primary-600 font-medium transition-colors"
             >
               Symptomer
+            </Link>
+            <Link
+              to="/diary"
+              className="text-gray-600 hover:text-primary-600 font-medium transition-colors"
+            >
+              Dagbok
             </Link>
             <Link
               to="/analytics"
@@ -216,13 +215,6 @@ export function Header() {
                   >
                     Oppskrifter
                   </Link>
-                  <Link
-                    to="/diary"
-                    className="block px-3 py-2 text-sm text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded transition-colors"
-                    onClick={() => setShowMobileMenu(false)}
-                  >
-                    Dagbok mat
-                  </Link>
                 </div>
               </div>
 
@@ -232,6 +224,13 @@ export function Header() {
                 onClick={() => setShowMobileMenu(false)}
               >
                 Symptomer
+              </Link>
+              <Link
+                to="/diary"
+                className="px-4 py-2 text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                Dagbok
               </Link>
               <Link
                 to="/analytics"

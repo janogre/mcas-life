@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Heart, AlertTriangle, CheckCircle, XCircle, WifiOff, Plus, Shield, ShieldCheck } from 'lucide-react';
+import { Search, Filter, Heart, AlertTriangle, CheckCircle, XCircle, WifiOff, Plus, Shield, ShieldCheck, HelpCircle } from 'lucide-react';
 import { useApiCall } from '../../hooks/useAsync';
 import { useOfflineData } from '../../hooks/useOfflineData';
 import { foodApi, diaryApi, personalRatingApi } from '../../lib/api';
 import { LoadingSpinner, SectionLoading } from '../../components/UI/LoadingSpinner';
 import { ErrorDisplay, NetworkError } from '../../components/UI/ErrorDisplay';
+import { useToast } from '../../components/UI/Toast';
 import type { Food, FoodSearchRequest, ApprovedFood, PersonalFoodRating, SighiTrigger, TRIGGER_DISPLAY } from '../../types/shared';
 import { TRIGGER_DISPLAY as TRIGGER_INFO } from '../../types/shared';
 
@@ -53,6 +54,7 @@ export function FoodSearchPage() {
   const [personalRatings, setPersonalRatings] = useState<PersonalFoodRating[]>([]);
 
   const { isOnline, getCachedFoodData, storeOfflineData } = useOfflineData();
+  const { success, error: showError } = useToast();
 
   const {
     data: searchResults,
@@ -153,18 +155,17 @@ export function FoodSearchPage() {
         data: {
           foods: [{
             sighi_id: food.id,
-            name: food.name_en || food.name_no,
+            name: food.display_name_en || food.name_en || food.name_no,
             amount: '',
             unit: ''
           }]
         }
       });
-      
-      // Show success message (you could use a toast notification here)
-      alert(`${food.name_en || food.name_no} added to diary!`);
+
+      success('Lagt til i dagbok', `${food.display_name_en || food.name_en || food.name_no}`, 2000);
     } catch (error) {
       console.error('Failed to add food to diary:', error);
-      alert('Failed to add food to diary. Please try again.');
+      showError('Feil', 'Kunne ikke legge til i dagbok. Prøv igjen.');
     }
   };
 
@@ -175,14 +176,14 @@ export function FoodSearchPage() {
         personal_compatibility: personalCompatibility,
         notes: ''
       });
-      
+
       // Reload approved foods to update UI
       await loadApprovedFoods();
-      
-      alert(`${food.name_en || food.name_no} added to your safe list!`);
+
+      success('Trygg mat', `${food.display_name_en || food.name_en || food.name_no} lagt til`, 2000);
     } catch (error) {
       console.error('Failed to add food to safe list:', error);
-      alert('Failed to add food to safe list. Please try again.');
+      showError('Feil', 'Kunne ikke legge til trygg mat. Prøv igjen.');
     }
   };
 
@@ -192,31 +193,31 @@ export function FoodSearchPage() {
 
     try {
       await foodApi.deleteApproved(approvedFood.id);
-      
+
       // Reload approved foods to update UI
       await loadApprovedFoods();
-      
-      alert(`${food.name_en || food.name_no} removed from your safe list!`);
+
+      success('Fjernet', `${food.display_name_en || food.name_en || food.name_no} fjernet fra trygg mat`, 2000);
     } catch (error) {
       console.error('Failed to remove food from safe list:', error);
-      alert('Failed to remove food from safe list. Please try again.');
+      showError('Feil', 'Kunne ikke fjerne trygg mat. Prøv igjen.');
     }
   };
 
   const quickRate = async (food: Food, personalRating: number) => {
     try {
-      console.log(`🔄 Rating food ${food.name_en || food.name_no} (ID: ${food.id}) with rating: ${personalRating}`);
-      
+      console.log(`🔄 Rating food ${food.display_name_en || food.name_en || food.name_no} (ID: ${food.id}) with rating: ${personalRating}`);
+
       // Use personal rating API instead of approved foods
       const result = await personalRatingApi.setFoodRating(food.id!, personalRating);
       console.log('✅ Personal rating saved:', result);
-      
+
       // Reload personal ratings to update UI
       await loadPersonalRatings();
-      
+
     } catch (error) {
       console.error('❌ Failed to rate food:', error);
-      alert('Failed to save rating. Please try again.');
+      showError('Feil', 'Kunne ikke lagre vurdering. Prøv igjen.');
     }
   };
 
@@ -237,8 +238,17 @@ export function FoodSearchPage() {
           <div className="flex-1">
             <div className="flex items-center space-x-2">
               <h3 className="font-semibold text-gray-900">
-                {food.name_en || food.name_no}
+                {food.display_name_en || food.name_en || food.name_no}
               </h3>
+              {food.sighi_uncertainty_level && food.sighi_uncertainty_level > 0 && (
+                <div
+                  className="flex items-center space-x-1 px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-xs font-medium"
+                  title={`SIGHI usikkerhet: ${'?'.repeat(food.sighi_uncertainty_level)} - Data er usikker eller omdiskutert i forskningen`}
+                >
+                  <HelpCircle className="w-3 h-3" />
+                  <span>Usikker data</span>
+                </div>
+              )}
               {ratingDiffers && (
                 <div className="flex items-center space-x-1 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
                   <AlertTriangle className="w-3 h-3" />
@@ -247,7 +257,7 @@ export function FoodSearchPage() {
               )}
             </div>
             {food.name_en && food.name_no && food.name_en !== food.name_no && (
-              <p className="text-sm text-gray-600">{food.name_no}</p>
+              <p className="text-sm text-gray-600">{food.display_name_no || food.name_no}</p>
             )}
           </div>
           

@@ -137,6 +137,12 @@ export interface Food {
   nutrition_data?: any;
   verified?: boolean;
   source?: 'sighi' | 'community' | 'fooddata' | 'openfoodfacts';
+
+  // Display names without SIGHI uncertainty notation
+  display_name_en?: string | null;
+  display_name_no?: string | null;
+  sighi_uncertainty_level?: number; // 0 = certain, 1 = ?, 2 = ??, 3 = ???
+
   created_at?: Date;
   updated_at?: Date;
 }

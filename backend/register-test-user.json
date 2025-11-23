@@ -1,0 +1,13 @@
+{
+  "email": "test@mcas.no",
+  "username": "testbruker",
+  "password": "Test123!",
+  "firstName": "Test",
+  "lastName": "Bruker",
+  "timezone": "Europe/Oslo",
+  "language": "no",
+  "mcas_severity": "moderate",
+  "confirmed_diagnosis": true,
+  "accept_terms": true,
+  "accept_privacy": true
+}

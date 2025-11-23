@@ -1,0 +1,65 @@
+================================================================================
+SIGHI FOODS WITH QUESTION MARKS - QUICK REFERENCE
+================================================================================
+
+CRITICAL FINDING: The "?" symbol is INTENTIONAL SIGHI notation for scientific
+                  uncertainty. DO NOT remove without medical review.
+
+DATABASE STATISTICS:
+- Total foods with "?": 23
+- Single "?" (uncertain): 19 foods
+- Double "??" (high uncertainty): 4 foods
+- 95.7% are compatibility level 3 (Severe)
+
+FOODS IN DATABASE (as of 2025-11-21):
+--------------------------------------------------------------------------------
+MEATS (12 foods - all level 3):
+  ? dried meat (any kind)
+  ? dry-cured ham
+  ? ham (dried, cured)
+  ? salami
+  ? ? smoked fish (any)
+  ? ? smoked meat (any)
+
+VINEGARS (4 foods - all level 3):
+  ? red wine vinegar
+  ? white wine vinegar
+
+FRUITS/ADDITIVES (6 foods - all level 3):
+  ? E127, erythrosine
+  ? erythrosine, E127
+  ? L orange peel, orange zest
+
+OTHER (1 food - level 1):
+  ?healing spring water with lots of sulfur, fluorine
+
+MISSING FROM DATABASE (in JSON source only):
+--------------------------------------------------------------------------------
+ASIAN PEARS: 13 variants (nashi, Korean, Chinese, Japanese, etc.)
+EGGPLANT: 3 variants (aubergine, eggplant, brinjal) - all "???"
+DAIRY: 5 items (blue cheese, goat milk, sheep milk, etc.)
+VEGETABLES: 6 items (chard, cabbage varieties, cress, etc.)
+ADDITIVES: 30+ E-numbers and food chemicals
+GRAINS: barley malt variants - all "???"
+
+MEANING OF "?" SYMBOLS:
+--------------------------------------------------------------------------------
+?     = Uncertain or debated (insufficient research)
+??    = High uncertainty (conflicting studies)
+???   = Very high uncertainty (minimal data)
+
+RECOMMENDATION: KEEP the "?" symbols, add UI tooltips explaining uncertainty
+
+SQL TO VIEW ALL:
+  SELECT id, name_en, category, compatibility, triggers
+  FROM foods
+  WHERE name_en LIKE '?%' OR name_no LIKE '?%'
+  ORDER BY compatibility, name_en;
+
+DETAILED REPORTS:
+- Full analysis: SIGHI-QUESTION-MARKS-ANALYSIS.md
+- Database report: backend/foods-with-question-marks-report.md
+- Analysis script: backend/src/scripts/analyzeFoodsWithQuestionMarks.ts
+
+Run: npm run analyze:question-marks (in backend directory)
+================================================================================

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Calendar, AlertCircle, Clock, TrendingUp, Shield, Activity, Cloud } from 'lucide-react';
+import { Plus, Calendar, AlertCircle, Clock, TrendingUp, Shield, Activity, Cloud, Heart, Zap, ThermometerSun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { getWeatherAutomatically, formatWeatherData, getWeatherEmoji, type WeatherResponse } from '../../lib/weatherApi';
 import { useAuth } from '../../contexts/AuthContext';
+import './symptom-log-animations.css';
 
 interface Symptom {
   id: number;
@@ -51,7 +52,6 @@ export function SymptomLogPage() {
   const loadWeatherData = async () => {
     setIsLoadingWeather(true);
     try {
-      // Try to get weather automatically (browser location or user's city)
       const weather = await getWeatherAutomatically(user?.city);
       if (weather) {
         setCurrentWeather(weather);
@@ -68,16 +68,13 @@ export function SymptomLogPage() {
       setLoading(true);
       console.log('[SymptomLogPage] Loading symptom data...');
 
-      // Load recent symptoms from API
       const symptomsResponse = await api.get('/symptoms?limit=10');
       console.log('[SymptomLogPage] Symptoms API response:', symptomsResponse.data);
       const symptoms = symptomsResponse.data.data || [];
 
-      // Load risk factors analysis
       const riskResponse = await api.get('/symptoms/risk-factors');
       const riskData = riskResponse.data.data;
-      
-      // Transform API risk data to component format
+
       const riskAnalysis = riskData ? {
         riskLevel: riskData.reactionRiskLevel || 5,
         factors: [
@@ -90,7 +87,6 @@ export function SymptomLogPage() {
         recommendations: riskData.recommendations || []
       } : null;
 
-      // Transform API symptom data to component format
       const transformedSymptoms = symptoms.map((symptom: any) => ({
         id: symptom.id,
         category: symptom.category,
@@ -123,280 +119,700 @@ export function SymptomLogPage() {
     }
   };
 
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) return 'Mindre enn 1 time siden';
     if (diffInHours < 24) return `${diffInHours} timer siden`;
     return `${Math.floor(diffInHours / 24)} dager siden`;
   };
 
-  const getSeverityColor = (severity: number) => {
-    if (severity >= 8) return 'bg-red-100 text-red-700';
-    if (severity >= 5) return 'bg-yellow-100 text-yellow-700';
-    return 'bg-green-100 text-green-700';
+  const getSeverityInfo = (severity: number) => {
+    if (severity >= 8) {
+      return {
+        color: '#991b1b',
+        bgColor: '#fee2e2',
+        borderColor: '#fecaca',
+        label: 'Alvorlig',
+        Icon: AlertCircle
+      };
+    }
+    if (severity >= 5) {
+      return {
+        color: '#92400e',
+        bgColor: '#fef3c7',
+        borderColor: '#fde68a',
+        label: 'Moderat',
+        Icon: AlertCircle
+      };
+    }
+    return {
+      color: 'var(--color-medical-700)',
+      bgColor: 'var(--color-medical-50)',
+      borderColor: 'var(--color-medical-200)',
+      label: 'Mild',
+      Icon: Activity
+    };
   };
 
-  const getRiskLevelColor = (level: number) => {
-    if (level >= 8) return 'text-red-600';
-    if (level >= 5) return 'text-yellow-600';
-    return 'text-green-600';
+  const getRiskLevelInfo = (level: number) => {
+    if (level >= 8) {
+      return {
+        color: '#991b1b',
+        bgColor: '#fee2e2',
+        label: 'Høy risiko',
+        gradient: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)'
+      };
+    }
+    if (level >= 5) {
+      return {
+        color: '#92400e',
+        bgColor: '#fef3c7',
+        label: 'Moderat risiko',
+        gradient: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'
+      };
+    }
+    return {
+      color: 'var(--color-medical-700)',
+      bgColor: 'var(--color-medical-50)',
+      label: 'Lav risiko',
+      gradient: 'linear-gradient(135deg, var(--color-medical-50) 0%, var(--color-medical-100) 100%)'
+    };
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Laster...</div>;
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '3rem 0',
+      }}>
+        <div className="loading-shimmer" style={{
+          width: '100%',
+          maxWidth: '400px',
+          height: '200px',
+          borderRadius: 'var(--radius-gentle)',
+        }} />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '2rem' }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Symptom Tracking</h1>
-          <p className="text-gray-600 mt-1">Log and monitor your MCAS symptoms</p>
-        </div>
-        <button
-          onClick={() => navigate('/symptoms/register')}
-          className="btn-primary flex items-center space-x-2"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Registrer symptom</span>
-        </button>
-      </div>
+      <div
+        className="page-header"
+        style={{
+          background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+          borderRadius: 'var(--radius-gentle)',
+          padding: '2.5rem',
+          boxShadow: 'var(--shadow-elevated)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Decorative shapes */}
+        <div style={{
+          position: 'absolute',
+          top: '-10%',
+          right: '-5%',
+          width: '250px',
+          height: '250px',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)',
+          borderRadius: '50%',
+          filter: 'blur(40px)',
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: '-20%',
+          left: '-10%',
+          width: '300px',
+          height: '300px',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+          borderRadius: '50%',
+          filter: 'blur(50px)',
+        }} />
 
-      {/* Current Weather */}
-      {currentWeather && (
-        <div className="bg-gradient-to-r from-sky-50 to-blue-50 rounded-xl p-6 border border-sky-100">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3">
-              <span className="text-4xl">
-                {getWeatherEmoji(currentWeather.weather.weather_code)}
-              </span>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Cloud className="w-5 h-5 text-sky-600" />
-                  <h2 className="text-lg font-semibold text-gray-900">Nåværende vær</h2>
-                </div>
-                <p className="text-sm text-gray-700">
-                  {formatWeatherData(currentWeather.weather)}
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  {currentWeather.weather.weather_description}
-                </p>
-              </div>
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
+          <div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              marginBottom: '0.75rem',
+            }}>
+              <Heart style={{ width: '32px', height: '32px', color: 'white' }} />
+              <h1 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '2.25rem',
+                fontWeight: 600,
+                color: 'white',
+                letterSpacing: '-0.02em',
+              }}>
+                Symptomsporing
+              </h1>
             </div>
-            {currentWeather.impact && currentWeather.impact.severity !== 'low' && (
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                currentWeather.impact.severity === 'high'
-                  ? 'bg-red-100 text-red-700'
-                  : 'bg-yellow-100 text-yellow-700'
-              }`}>
-                {currentWeather.impact.severity === 'high' ? 'Høy risiko' : 'Moderat risiko'}
-              </span>
-            )}
+            <p style={{
+              color: 'rgba(255, 255, 255, 0.9)',
+              fontSize: '1.05rem',
+              fontWeight: 400,
+            }}>
+              Følg med på dine MCAS-symptomer og triggere
+            </p>
           </div>
-
-          {/* MCAS impact warnings */}
-          {currentWeather.impact && currentWeather.impact.risk_factors.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-sky-200">
-              <p className="text-xs font-medium text-gray-700 mb-2">
-                ⚠️ MCAS påvirkningsfaktorer:
-              </p>
-              <div className="space-y-1">
-                {currentWeather.impact.risk_factors.map((factor, index) => (
-                  <p key={index} className="text-xs text-gray-600">
-                    • {factor}
-                  </p>
-                ))}
-              </div>
-              {currentWeather.impact.recommendations.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-xs font-medium text-gray-700 mb-1">Anbefalinger:</p>
-                  <div className="space-y-1">
-                    {currentWeather.impact.recommendations.map((rec, index) => (
-                      <p key={index} className="text-xs text-gray-600">
-                        • {rec}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          <p className="text-xs text-gray-500 mt-3">
-            Værdata lagres automatisk når du logger symptomer
-          </p>
-        </div>
-      )}
-
-      {/* Risk Analysis */}
-      {riskAnalysis && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <Shield className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Dagens risiko</h2>
-            </div>
-            <span className={`text-2xl font-bold ${getRiskLevelColor(riskAnalysis.riskLevel)}`}>
-              {riskAnalysis.riskLevel}/10
-            </span>
-          </div>
-          
-          {riskAnalysis.factors.length > 0 && (
-            <div className="mb-3">
-              <h3 className="font-medium text-gray-700 mb-2">Risikofaktorer:</h3>
-              <div className="flex flex-wrap gap-2">
-                {riskAnalysis.factors.map((factor, index) => (
-                  <span key={index} className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-sm">
-                    {factor}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {riskAnalysis.recommendations.length > 0 && (
-            <div>
-              <h3 className="font-medium text-gray-700 mb-2">Anbefalinger:</h3>
-              <ul className="space-y-1">
-                {riskAnalysis.recommendations.map((rec, index) => (
-                  <li key={index} className="text-sm text-gray-600 flex items-center space-x-2">
-                    <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                    <span>{rec}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Recent Symptoms */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Nylige symptomer</h2>
-          <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-            Se alle
+          <button
+            onClick={() => navigate('/symptoms/register')}
+            className="register-btn-hero"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.875rem 1.5rem',
+              background: 'white',
+              color: '#6366f1',
+              fontSize: '0.95rem',
+              fontWeight: 600,
+              borderRadius: 'var(--radius-soft)',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s ease',
+            }}
+          >
+            <Plus style={{ width: '20px', height: '20px' }} />
+            <span>Registrer symptom</span>
           </button>
         </div>
+      </div>
 
-        <div className="space-y-3">
-          {symptoms.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p>Ingen symptomer registrert ennå</p>
-              <p className="text-sm mt-1">Klikk "Registrer symptom" for å legge til ditt første symptom</p>
-            </div>
-          ) : (
-            symptoms.map((symptom) => (
-              <div key={symptom.id} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-3">
-                    <AlertCircle className="w-5 h-5 text-red-500" />
-                    <span className="font-medium text-gray-900">{symptom.type}</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getSeverityColor(symptom.severity)}`}>
-                      Alvorlighet {symptom.severity}/10
-                    </span>
-                  </div>
-                  <span className="text-sm text-gray-500">{formatDate(symptom.started_at)}</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                  <div className="flex items-center space-x-1">
-                    <Clock className="w-4 h-4" />
-                    <span>Varighet: {Math.floor(symptom.duration_minutes / 60)}t {symptom.duration_minutes % 60}min</span>
-                  </div>
-                  {symptom.suspected_triggers && symptom.suspected_triggers.length > 0 && (
-                    <div>
-                      Mulige triggere: {symptom.suspected_triggers.join(', ')}
-                    </div>
-                  )}
-                  {symptom.current_stress_factors && symptom.current_stress_factors.length > 0 && (
-                    <div>
-                      Stressfaktorer: {symptom.current_stress_factors.join(', ')}
-                    </div>
-                  )}
-                  {symptom.treatment_taken && (
-                    <div className="flex items-center space-x-1">
-                      <Activity className="w-4 h-4" />
-                      <span>Behandling: {symptom.treatment_taken}</span>
-                      {symptom.treatment_effective !== undefined && (
-                        <span className={`ml-1 ${symptom.treatment_effective ? 'text-green-600' : 'text-red-600'}`}>
-                          ({symptom.treatment_effective ? 'Effektiv' : 'Ikke effektiv'})
-                        </span>
-                      )}
-                    </div>
-                  )}
+      {/* Stats Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+        {[
+          { label: 'Totalt loggført', value: symptoms.length, color: '#6366f1', bg: '#eef2ff', Icon: Activity },
+          { label: 'Siste uke', value: symptoms.filter(s => {
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            return new Date(s.started_at) >= weekAgo;
+          }).length, color: '#a855f7', bg: '#faf5ff', Icon: Calendar },
+          { label: 'Høy alvorlighet', value: symptoms.filter(s => s.severity >= 7).length, color: '#ef4444', bg: '#fee2e2', Icon: AlertCircle },
+          { label: 'Gjennomsnitt', value: symptoms.length > 0 ? Math.round(symptoms.reduce((sum, s) => sum + s.severity, 0) / symptoms.length * 10) / 10 : 0, color: '#f59e0b', bg: '#fef3c7', Icon: TrendingUp },
+        ].map((stat, index) => (
+          <div
+            key={index}
+            className="stat-card-mini animate-fade-in-up"
+            style={{
+              background: 'white',
+              borderRadius: 'var(--radius-soft)',
+              padding: '1.5rem',
+              boxShadow: 'var(--shadow-whisper)',
+              border: '1px solid var(--color-sage-100)',
+              animationDelay: `${index * 80}ms`,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: stat.bg,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <stat.Icon style={{ width: '20px', height: '20px', color: stat.color }} />
+              </div>
+              <div>
+                <div style={{
+                  fontSize: '1.75rem',
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-display)',
+                  color: stat.color,
+                  lineHeight: 1,
+                }}>
+                  {stat.value}
                 </div>
               </div>
-            ))
+            </div>
+            <div style={{
+              fontSize: '0.9rem',
+              color: 'var(--color-sage-600)',
+              fontWeight: 500,
+            }}>
+              {stat.label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Two column layout for cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem', '@media (min-width: 768px)': { gridTemplateColumns: '1fr 1fr' } }}>
+        {/* Current Weather */}
+        {currentWeather && (
+          <div
+            className="weather-card animate-fade-in-up"
+            style={{
+              background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+              borderRadius: 'var(--radius-gentle)',
+              padding: '1.5rem',
+              border: '1px solid #bae6fd',
+              boxShadow: 'var(--shadow-whisper)',
+              animationDelay: '160ms',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'start', gap: '0.75rem' }}>
+                <span style={{ fontSize: '2.5rem' }}>
+                  {getWeatherEmoji(currentWeather.weather.weather_code)}
+                </span>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                    <Cloud style={{ width: '18px', height: '18px', color: '#0369a1' }} />
+                    <h3 style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: '1.05rem',
+                      fontWeight: 600,
+                      color: 'var(--color-sage-900)',
+                    }}>
+                      Nåværende vær
+                    </h3>
+                  </div>
+                  <p style={{
+                    fontSize: '0.85rem',
+                    color: 'var(--color-sage-700)',
+                    fontWeight: 500
+                  }}>
+                    {formatWeatherData(currentWeather.weather)}
+                  </p>
+                  <p style={{
+                    fontSize: '0.75rem',
+                    color: 'var(--color-sage-600)',
+                    marginTop: '0.25rem'
+                  }}>
+                    {currentWeather.weather.weather_description}
+                  </p>
+                </div>
+              </div>
+              {currentWeather.impact && currentWeather.impact.severity !== 'low' && (
+                <span style={{
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '999px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  ...(currentWeather.impact.severity === 'high'
+                    ? { background: '#fee2e2', color: '#991b1b' }
+                    : { background: '#fef3c7', color: '#92400e' })
+                }}>
+                  {currentWeather.impact.severity === 'high' ? 'Høy risiko' : 'Moderat'}
+                </span>
+              )}
+            </div>
+
+            {currentWeather.impact && currentWeather.impact.risk_factors.length > 0 && (
+              <div style={{
+                marginTop: '1rem',
+                paddingTop: '1rem',
+                borderTop: '1px solid #bae6fd'
+              }}>
+                <p style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  color: 'var(--color-sage-700)',
+                  marginBottom: '0.5rem',
+                }}>
+                  ⚠️ MCAS påvirkningsfaktorer:
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  {currentWeather.impact.risk_factors.map((factor, index) => (
+                    <p key={index} style={{
+                      fontSize: '0.75rem',
+                      color: 'var(--color-sage-600)',
+                    }}>
+                      • {factor}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p style={{
+              fontSize: '0.7rem',
+              color: 'var(--color-sage-500)',
+              marginTop: '0.75rem',
+              fontStyle: 'italic'
+            }}>
+              Værdata lagres automatisk ved symptomregistrering
+            </p>
+          </div>
+        )}
+
+        {/* Risk Analysis */}
+        {riskAnalysis && (
+          <div
+            className="risk-card animate-fade-in-up"
+            style={{
+              background: getRiskLevelInfo(riskAnalysis.riskLevel).gradient,
+              borderRadius: 'var(--radius-gentle)',
+              padding: '1.5rem',
+              border: `1px solid ${getRiskLevelInfo(riskAnalysis.riskLevel).bgColor}`,
+              boxShadow: 'var(--shadow-whisper)',
+              animationDelay: '240ms',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Shield style={{ width: '20px', height: '20px', color: getRiskLevelInfo(riskAnalysis.riskLevel).color }} />
+                <h3 style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '1.05rem',
+                  fontWeight: 600,
+                  color: 'var(--color-sage-900)',
+                }}>
+                  Dagens risiko
+                </h3>
+              </div>
+              <div style={{
+                fontSize: '2rem',
+                fontWeight: 700,
+                fontFamily: 'var(--font-display)',
+                color: getRiskLevelInfo(riskAnalysis.riskLevel).color,
+              }}>
+                {riskAnalysis.riskLevel}/10
+              </div>
+            </div>
+
+            {riskAnalysis.factors.length > 0 && (
+              <div style={{ marginBottom: '1rem' }}>
+                <h4 style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  color: 'var(--color-sage-700)',
+                  marginBottom: '0.5rem',
+                }}>
+                  Risikofaktorer:
+                </h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                  {riskAnalysis.factors.map((factor, index) => (
+                    <span
+                      key={index}
+                      className="factor-badge"
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        background: 'rgba(0, 0, 0, 0.05)',
+                        color: 'var(--color-sage-800)',
+                        borderRadius: '999px',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                      }}
+                    >
+                      {factor}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {riskAnalysis.recommendations.length > 0 && (
+              <div>
+                <h4 style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  color: 'var(--color-sage-700)',
+                  marginBottom: '0.5rem',
+                }}>
+                  Anbefalinger:
+                </h4>
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  {riskAnalysis.recommendations.map((rec, index) => (
+                    <li key={index} style={{
+                      fontSize: '0.8rem',
+                      color: 'var(--color-sage-700)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                    }}>
+                      <span style={{
+                        width: '4px',
+                        height: '4px',
+                        background: getRiskLevelInfo(riskAnalysis.riskLevel).color,
+                        borderRadius: '50%',
+                        flexShrink: 0,
+                      }}></span>
+                      <span>{rec}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Recent Symptoms */}
+      <div style={{
+        background: 'white',
+        borderRadius: 'var(--radius-gentle)',
+        padding: '1.5rem',
+        boxShadow: 'var(--shadow-gentle)',
+        border: '1px solid var(--color-sage-100)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+          <h2 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '1.3rem',
+            fontWeight: 600,
+            color: 'var(--color-sage-900)',
+          }}>
+            Nylige symptomer
+          </h2>
+          <span style={{
+            fontSize: '0.85rem',
+            color: 'var(--color-sage-600)',
+            fontWeight: 500,
+          }}>
+            {symptoms.length} registrert
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {symptoms.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '3rem 1.5rem',
+              background: 'var(--color-sage-50)',
+              borderRadius: 'var(--radius-gentle)',
+            }}>
+              <AlertCircle style={{
+                width: '48px',
+                height: '48px',
+                color: 'var(--color-sage-300)',
+                margin: '0 auto 1rem',
+              }} />
+              <h3 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                color: 'var(--color-sage-900)',
+                marginBottom: '0.5rem',
+              }}>
+                Ingen symptomer registrert ennå
+              </h3>
+              <p style={{
+                color: 'var(--color-sage-600)',
+                fontSize: '0.9rem',
+              }}>
+                Klikk "Registrer symptom" for å starte sporing
+              </p>
+            </div>
+          ) : (
+            symptoms.map((symptom, index) => {
+              const severityInfo = getSeverityInfo(symptom.severity);
+              const SeverityIcon = severityInfo.Icon;
+
+              return (
+                <div
+                  key={symptom.id}
+                  className={`symptom-card animate-fade-in-up ${symptom.severity >= 8 ? 'severity-high' : ''}`}
+                  style={{
+                    padding: '1.25rem',
+                    border: `2px solid ${severityInfo.borderColor}`,
+                    borderRadius: 'var(--radius-soft)',
+                    background: 'white',
+                    boxShadow: 'var(--shadow-whisper)',
+                    animationDelay: `${index * 60}ms`,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '8px',
+                        background: severityInfo.bgColor,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <SeverityIcon style={{ width: '20px', height: '20px', color: severityInfo.color }} />
+                      </div>
+                      <div>
+                        <span style={{
+                          fontFamily: 'var(--font-display)',
+                          fontSize: '1rem',
+                          fontWeight: 600,
+                          color: 'var(--color-sage-900)',
+                        }}>
+                          {symptom.type}
+                        </span>
+                        {symptom.category && (
+                          <p style={{
+                            fontSize: '0.75rem',
+                            color: 'var(--color-sage-600)',
+                            marginTop: '0.15rem',
+                          }}>
+                            {symptom.category}
+                          </p>
+                        )}
+                      </div>
+                      <span style={{
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '999px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        background: severityInfo.bgColor,
+                        color: severityInfo.color,
+                        border: `1.5px solid ${severityInfo.borderColor}`,
+                      }}>
+                        {severityInfo.label} {symptom.severity}/10
+                      </span>
+                    </div>
+                    <span style={{
+                      fontSize: '0.8rem',
+                      color: 'var(--color-sage-500)',
+                      fontWeight: 500,
+                    }}>
+                      {formatDate(symptom.started_at)}
+                    </span>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    fontSize: '0.85rem',
+                    color: 'var(--color-sage-600)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Clock style={{ width: '14px', height: '14px' }} />
+                      <span>{Math.floor(symptom.duration_minutes / 60)}t {symptom.duration_minutes % 60}m</span>
+                    </div>
+                    {symptom.suspected_triggers && symptom.suspected_triggers.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Zap style={{ width: '14px', height: '14px' }} />
+                        <span>Triggere: {symptom.suspected_triggers.join(', ')}</span>
+                      </div>
+                    )}
+                    {symptom.treatment_taken && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Activity style={{ width: '14px', height: '14px' }} />
+                        <span>
+                          {symptom.treatment_taken}
+                          {symptom.treatment_effective !== undefined && (
+                            <span style={{
+                              marginLeft: '0.35rem',
+                              color: symptom.treatment_effective ? 'var(--color-medical-700)' : '#991b1b',
+                              fontWeight: 600,
+                            }}>
+                              ({symptom.treatment_effective ? '✓ Effektiv' : '✗ Ikke effektiv'})
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
 
-      {/* Today's Context Quick View */}
+      {/* Today's Context */}
       {todayContext && (
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
-          <div className="flex items-center space-x-2 mb-3">
-            <TrendingUp className="w-5 h-5 text-green-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Dagens kontekst</h3>
+        <div
+          className="animate-fade-in-up"
+          style={{
+            background: 'linear-gradient(135deg, var(--color-medical-50) 0%, #d1fae5 100%)',
+            borderRadius: 'var(--radius-gentle)',
+            padding: '1.5rem',
+            border: '1px solid var(--color-medical-200)',
+            boxShadow: 'var(--shadow-whisper)',
+            animationDelay: '320ms',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+            <TrendingUp style={{ width: '20px', height: '20px', color: 'var(--color-medical-700)' }} />
+            <h3 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1.05rem',
+              fontWeight: 600,
+              color: 'var(--color-sage-900)',
+            }}>
+              Dagens kontekst
+            </h3>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div className="flex items-center space-x-2">
-              <span className={`w-2 h-2 rounded-full ${todayContext.dao_supplement_taken ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-              <span>DAO tatt</span>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '1rem',
+            fontSize: '0.85rem',
+          }}>
+            <div className="context-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: todayContext.dao_supplement_taken ? 'var(--color-medical-600)' : 'var(--color-sage-300)',
+              }}></span>
+              <span style={{ color: 'var(--color-sage-800)', fontWeight: 500 }}>DAO tatt</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <span className={`w-2 h-2 rounded-full ${todayContext.compression_worn ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-              <span>Kompresjon</span>
+            <div className="context-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: todayContext.compression_worn ? 'var(--color-medical-600)' : 'var(--color-sage-300)',
+              }}></span>
+              <span style={{ color: 'var(--color-sage-800)', fontWeight: 500 }}>Kompresjon</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <span className={`w-2 h-2 rounded-full ${todayContext.sensory_environment_controlled ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-              <span>Rolig miljø</span>
+            <div className="context-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: todayContext.sensory_environment_controlled ? 'var(--color-medical-600)' : 'var(--color-sage-300)',
+              }}></span>
+              <span style={{ color: 'var(--color-sage-800)', fontWeight: 500 }}>Rolig miljø</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <span className={`w-2 h-2 rounded-full ${todayContext.had_reactions_yesterday ? 'bg-red-500' : 'bg-green-500'}`}></span>
-              <span>Reaksjoner i går</span>
+            <div className="context-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: todayContext.had_reactions_yesterday ? '#ef4444' : 'var(--color-medical-600)',
+              }}></span>
+              <span style={{ color: 'var(--color-sage-800)', fontWeight: 500 }}>
+                {todayContext.had_reactions_yesterday ? 'Reaksjoner i går' : 'Ingen reaksjoner i går'}
+              </span>
             </div>
           </div>
           {(todayContext.stress_level || todayContext.sleep_quality) && (
-            <div className="mt-3 pt-3 border-t border-green-200 flex gap-6 text-sm">
-              {todayContext.stress_level && (
-                <span>Stress: {todayContext.stress_level}/10</span>
+            <div style={{
+              marginTop: '1rem',
+              paddingTop: '1rem',
+              borderTop: '1px solid var(--color-medical-200)',
+              display: 'flex',
+              gap: '1.5rem',
+              fontSize: '0.85rem',
+              flexWrap: 'wrap',
+            }}>
+              {todayContext.stress_level !== undefined && (
+                <span style={{ color: 'var(--color-sage-700)', fontWeight: 500 }}>
+                  Stress: <strong style={{ color: 'var(--color-sage-900)' }}>{todayContext.stress_level}/10</strong>
+                </span>
               )}
-              {todayContext.sleep_quality && (
-                <span>Søvnkvalitet: {todayContext.sleep_quality}/10</span>
+              {todayContext.sleep_quality !== undefined && (
+                <span style={{ color: 'var(--color-sage-700)', fontWeight: 500 }}>
+                  Søvnkvalitet: <strong style={{ color: 'var(--color-sage-900)' }}>{todayContext.sleep_quality}/10</strong>
+                </span>
               )}
             </div>
           )}
         </div>
       )}
-
-      {/* Enhanced Features Info */}
-      <div className="bg-gradient-to-r from-primary-50 to-purple-50 rounded-xl p-6 border border-primary-100">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Forbedret MCAS-tracking</h3>
-        <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-600">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span>Automatisk kontekstfangst fra daglig logging</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span>Smart risikoanalyse basert på flere faktorer</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-            <span>Korrelasjon med vær, søvn og hormoner</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-            <span>Personaliserte anbefalinger</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

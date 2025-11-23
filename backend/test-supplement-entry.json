@@ -1,0 +1,13 @@
+{
+  "type": "supplement",
+  "data": {
+    "name": "DAO Enzyme",
+    "type": "dao_supplement",
+    "brand": "DAOSiN",
+    "dosage_amount": 1,
+    "dosage_unit": "capsule",
+    "frequency": "before meals",
+    "intended_for": ["histamine intolerance", "digestive symptoms"],
+    "notes": "Testing supplement diary persistence"
+  }
+}

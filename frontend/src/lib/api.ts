@@ -456,21 +456,31 @@ export const symptomTemplateApi = {
 export const airthingsApi = {
   getDevices: async () => {
     const response = await api.get('/airthings/devices');
-    return response.data.data;
+    return response.data;
   },
 
   getDeviceData: async (deviceId: string) => {
     const response = await api.get(`/airthings/devices/${deviceId}`);
-    return response.data.data;
+    return response.data;
   },
 
   getAllDevicesAirQuality: async () => {
     const response = await api.get('/airthings/air-quality');
-    return response.data.data;
+    return response.data;
   },
 
   getStatus: async () => {
     const response = await api.get('/airthings/status');
+    return response.data;
+  },
+
+  getAuthUrl: async () => {
+    const response = await api.get('/airthings/auth-url');
+    return response.data;
+  },
+
+  disconnect: async () => {
+    const response = await api.post('/airthings/disconnect');
     return response.data;
   },
 };

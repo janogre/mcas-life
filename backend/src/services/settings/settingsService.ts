@@ -138,6 +138,20 @@ class SettingsService {
     clientSecret: string | null;
     redirectUri: string | null;
   }> {
+    // Try environment variables first (easier setup)
+    const envClientId = process.env['AIRTHINGS_CLIENT_ID'];
+    const envClientSecret = process.env['AIRTHINGS_CLIENT_SECRET'];
+    const envRedirectUri = process.env['AIRTHINGS_REDIRECT_URI'];
+
+    if (envClientId && envClientSecret) {
+      return {
+        clientId: envClientId,
+        clientSecret: envClientSecret,
+        redirectUri: envRedirectUri || 'http://localhost:3001/api/airthings/callback',
+      };
+    }
+
+    // Fall back to database settings
     const [clientId, clientSecret, redirectUri] = await Promise.all([
       this.getSetting('airthings_client_id'),
       this.getSetting('airthings_client_secret'),
@@ -147,7 +161,7 @@ class SettingsService {
     return {
       clientId,
       clientSecret,
-      redirectUri: redirectUri || 'http://localhost:3000/callback',
+      redirectUri: redirectUri || 'http://localhost:3001/api/airthings/callback',
     };
   }
 

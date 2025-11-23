@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Search, Filter, Plus, Edit, Trash2, Calendar, BarChart3, CheckCircle, AlertTriangle, XCircle, Clock, ChevronDown, ChevronRight } from 'lucide-react';
+import { Shield, Search, Filter, Plus, Edit, Trash2, Calendar, BarChart3, CheckCircle, AlertTriangle, XCircle, Clock, ChevronDown, ChevronRight, Sparkles, Leaf } from 'lucide-react';
 import { foodApi, diaryApi } from '../../lib/api';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { ErrorDisplay } from '../../components/UI/ErrorDisplay';
 import { AddCustomFoodModal } from '../../components/Foods/AddCustomFoodModal';
 import type { ApprovedFood, Food, SighiTrigger } from '../../types/shared';
 import { TRIGGER_DISPLAY as TRIGGER_INFO } from '../../types/shared';
+import './safe-foods-animations.css';
 
 const TOLERANCE_LABELS = {
-  0: { label: 'Safe', color: 'text-green-600', bgColor: 'bg-green-50', icon: CheckCircle },
-  1: { label: 'Medium', color: 'text-yellow-600', bgColor: 'bg-yellow-50', icon: AlertTriangle },
-  2: { label: 'Incompatible', color: 'text-orange-600', bgColor: 'bg-orange-50', icon: AlertTriangle },
-  3: { label: 'Severe', color: 'text-red-600', bgColor: 'bg-red-50', icon: XCircle },
+  0: { label: 'Safe', color: 'var(--color-medical-700)', bgColor: 'var(--color-medical-50)', borderColor: 'var(--color-medical-200)', icon: CheckCircle },
+  1: { label: 'Medium', color: '#92400e', bgColor: '#fef3c7', borderColor: '#fde68a', icon: AlertTriangle },
+  2: { label: 'Incompatible', color: '#9a3412', bgColor: '#fed7aa', borderColor: '#fdba74', icon: AlertTriangle },
+  3: { label: 'Severe', color: '#991b1b', bgColor: '#fee2e2', borderColor: '#fecaca', icon: XCircle },
 };
 
 const COMPATIBILITY_LABELS = {
-  0: { label: 'Safe', color: 'text-green-600', bgColor: 'bg-green-50', icon: CheckCircle },
-  1: { label: 'Medium', color: 'text-yellow-600', bgColor: 'bg-yellow-50', icon: AlertTriangle },
-  2: { label: 'Incompatible', color: 'text-orange-600', bgColor: 'bg-orange-50', icon: AlertTriangle },
-  3: { label: 'Severe', color: 'text-red-600', bgColor: 'bg-red-50', icon: XCircle },
+  0: { label: 'Safe', color: 'var(--color-medical-700)', bgColor: 'var(--color-medical-50)', borderColor: 'var(--color-medical-200)', icon: CheckCircle },
+  1: { label: 'Medium', color: '#92400e', bgColor: '#fef3c7', borderColor: '#fde68a', icon: AlertTriangle },
+  2: { label: 'Incompatible', color: '#9a3412', bgColor: '#fed7aa', borderColor: '#fdba74', icon: AlertTriangle },
+  3: { label: 'Severe', color: '#991b1b', bgColor: '#fee2e2', borderColor: '#fecaca', icon: XCircle },
 };
 
 interface ApprovedFoodWithFood extends ApprovedFood {
@@ -56,7 +57,7 @@ export function ApprovedFoodsPage() {
       setLoading(true);
       setError(null);
       const approved = await foodApi.getApproved();
-      
+
       // Load food details for each approved food
       const approvedWithFood = await Promise.all(
         approved.map(async (af) => {
@@ -69,7 +70,7 @@ export function ApprovedFoodsPage() {
           }
         })
       );
-      
+
       setApprovedFoods(approvedWithFood);
     } catch (err) {
       setError('Failed to load approved foods');
@@ -85,8 +86,10 @@ export function ApprovedFoodsPage() {
     // Search filter
     if (searchTerm.trim()) {
       const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(af => 
+      filtered = filtered.filter(af =>
+        af.food?.display_name_en?.toLowerCase().includes(search) ||
         af.food?.name_en?.toLowerCase().includes(search) ||
+        af.food?.display_name_no?.toLowerCase().includes(search) ||
         af.food?.name_no?.toLowerCase().includes(search) ||
         af.food?.category?.toLowerCase().includes(search) ||
         af.notes.toLowerCase().includes(search)
@@ -120,13 +123,13 @@ export function ApprovedFoodsPage() {
         data: {
           foods: [{
             sighi_id: approvedFood.food_id,
-            name: approvedFood.food?.name_en || approvedFood.food?.name_no || 'Unknown',
+            name: approvedFood.food?.display_name_en || approvedFood.food?.name_en || approvedFood.food?.name_no || 'Unknown',
             amount: '',
             unit: ''
           }]
         }
       });
-      
+
       alert('Added to diary successfully!');
     } catch (error) {
       console.error('Failed to add to diary:', error);
@@ -146,7 +149,7 @@ export function ApprovedFoodsPage() {
       console.error('Failed to remove from safe list:', error);
       // Still refresh the list as the deletion might have succeeded
       await loadApprovedFoods();
-      
+
       // Only show error if it's not a 404 (404 might mean already deleted)
       if (error.response?.status !== 404) {
         alert('Failed to remove from safe list. Please try again.');
@@ -202,12 +205,12 @@ export function ApprovedFoodsPage() {
     const now = new Date();
     const consumed = new Date(date);
     const diffDays = Math.floor((now.getTime() - consumed.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    return `${Math.floor(diffDays / 30)} months ago`;
+
+    if (diffDays === 0) return 'I dag';
+    if (diffDays === 1) return 'I går';
+    if (diffDays < 7) return `${diffDays} dager siden`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} uker siden`;
+    return `${Math.floor(diffDays / 30)} måneder siden`;
   };
 
   const getUniqueCategories = () => {
@@ -260,57 +263,129 @@ export function ApprovedFoodsPage() {
     const isEditing = editingFood?.id === approvedFood.id;
 
     // Get SIGHI compatibility info if food data is available
-    const sighiCompatibilityInfo = approvedFood.food?.compatibility !== undefined 
+    const sighiCompatibilityInfo = approvedFood.food?.compatibility !== undefined
       ? COMPATIBILITY_LABELS[approvedFood.food.compatibility as keyof typeof COMPATIBILITY_LABELS]
       : null;
     const SighiIcon = sighiCompatibilityInfo?.icon;
-    
+
     // Check if ratings differ
-    const ratingsDiffer = approvedFood.food?.compatibility !== undefined && 
+    const ratingsDiffer = approvedFood.food?.compatibility !== undefined &&
                          approvedFood.personal_tolerance !== approvedFood.food.compatibility;
 
     return (
-      <div className="bg-white rounded-lg border border-green-200 p-4 hover:shadow-md transition-shadow">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <div className="flex items-center space-x-2">
-              <h3 className="font-semibold text-gray-900">
-                {approvedFood.food?.name_en || approvedFood.food?.name_no || 'Unknown Food'}
+      <div
+        className="food-card"
+        style={{
+          background: 'white',
+          borderRadius: 'var(--radius-soft)',
+          padding: '1.25rem',
+          boxShadow: 'var(--shadow-whisper)',
+          border: `2px solid ${toleranceInfo.borderColor}`,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+              <h3 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '1.15rem',
+                fontWeight: 600,
+                color: 'var(--color-sage-900)',
+                letterSpacing: '-0.01em',
+              }}>
+                {approvedFood.food?.display_name_en || approvedFood.food?.name_en || approvedFood.food?.name_no || 'Unknown Food'}
               </h3>
-              <div className="flex items-center space-x-1 px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                <Shield className="w-3 h-3" />
-                <span>I Safe List</span>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                padding: '0.25rem 0.75rem',
+                background: 'var(--color-medical-50)',
+                color: 'var(--color-medical-700)',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+              }}>
+                <Shield style={{ width: '12px', height: '12px' }} />
+                <span>Trygg</span>
               </div>
               {ratingsDiffer && (
-                <div className="flex items-center space-x-1 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                  <AlertTriangle className="w-3 h-3" />
-                  <span>Avvikende vurdering</span>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  padding: '0.25rem 0.75rem',
+                  background: '#eff6ff',
+                  color: '#1e40af',
+                  borderRadius: '999px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                }}>
+                  <AlertTriangle style={{ width: '12px', height: '12px' }} />
+                  <span>Avvikende</span>
                 </div>
               )}
             </div>
-            {approvedFood.food?.name_en && approvedFood.food?.name_no && 
+            {approvedFood.food?.name_en && approvedFood.food?.name_no &&
              approvedFood.food.name_en !== approvedFood.food.name_no && (
-              <p className="text-sm text-gray-600">{approvedFood.food.name_no}</p>
+              <p style={{
+                fontSize: '0.9rem',
+                color: 'var(--color-sage-600)',
+                fontWeight: 500
+              }}>
+                {approvedFood.food.display_name_no || approvedFood.food.name_no}
+              </p>
             )}
           </div>
-          
-          <div className="flex flex-col items-end space-y-1">
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
             {/* SIGHI Rating */}
             {sighiCompatibilityInfo && (
-              <div className="flex items-center space-x-2">
-                <span className="text-xs text-gray-600 font-medium">SIGHI:</span>
-                <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${sighiCompatibilityInfo.bgColor} ${sighiCompatibilityInfo.color}`}>
-                  <SighiIcon className="w-3 h-3" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--color-sage-600)',
+                  fontWeight: 600
+                }}>SIGHI:</span>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '999px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  background: sighiCompatibilityInfo.bgColor,
+                  color: sighiCompatibilityInfo.color,
+                  border: `1.5px solid ${sighiCompatibilityInfo.borderColor}`,
+                }}>
+                  {SighiIcon && <SighiIcon style={{ width: '12px', height: '12px' }} />}
                   <span>{sighiCompatibilityInfo.label}</span>
                 </div>
               </div>
             )}
-            
+
             {/* Personal Tolerance */}
-            <div className="flex items-center space-x-2">
-              <span className="text-xs text-gray-600 font-medium">Mine:</span>
-              <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${toleranceInfo.bgColor} ${toleranceInfo.color}`}>
-                <ToleranceIcon className="w-3 h-3" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{
+                fontSize: '0.75rem',
+                color: 'var(--color-sage-600)',
+                fontWeight: 600
+              }}>Mine:</span>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                background: toleranceInfo.bgColor,
+                color: toleranceInfo.color,
+                border: `1.5px solid ${toleranceInfo.borderColor}`,
+              }}>
+                <ToleranceIcon style={{ width: '12px', height: '12px' }} />
                 <span>{toleranceInfo.label}</span>
               </div>
             </div>
@@ -318,34 +393,67 @@ export function ApprovedFoodsPage() {
         </div>
 
         {approvedFood.food?.category && (
-          <p className="text-sm text-gray-500 mb-2">{approvedFood.food.category}</p>
+          <p style={{
+            fontSize: '0.85rem',
+            color: 'var(--color-sage-500)',
+            marginBottom: '0.75rem',
+            fontWeight: 500
+          }}>
+            {approvedFood.food.category}
+          </p>
         )}
 
         {/* Trigger display */}
         {approvedFood.food?.triggers && approvedFood.food.triggers.length > 0 && (
-          <div className="mb-2">
-            <span className="text-xs font-medium text-gray-700 mr-2">Triggere:</span>
-            <div className="inline-flex flex-wrap gap-1">
+          <div style={{ marginBottom: '0.75rem' }}>
+            <span style={{
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              color: 'var(--color-sage-700)',
+              marginRight: '0.5rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>
+              Triggere:
+            </span>
+            <div style={{ display: 'inline-flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.35rem' }}>
               {approvedFood.food.triggers.map((trigger, idx) => {
                 const triggerInfo = TRIGGER_INFO[trigger as SighiTrigger];
-                
+
                 if (!triggerInfo) {
-                  // Fallback for unknown triggers
                   return (
                     <span
                       key={idx}
-                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '0.25rem 0.65rem',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        background: 'var(--color-sage-100)',
+                        color: 'var(--color-sage-700)',
+                      }}
                       title={`Unknown trigger: ${trigger}`}
                     >
                       {trigger}
                     </span>
                   );
                 }
-                
+
                 return (
                   <span
                     key={idx}
-                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${triggerInfo.bgColor} ${triggerInfo.color}`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '0.25rem 0.65rem',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      background: triggerInfo.bgColor,
+                      color: triggerInfo.color,
+                    }}
                     title={triggerInfo.description}
                   >
                     {triggerInfo.name}
@@ -357,79 +465,153 @@ export function ApprovedFoodsPage() {
         )}
 
         {/* Consumption stats */}
-        <div className="flex items-center space-x-4 text-xs text-gray-500 mb-3">
-          <div className="flex items-center space-x-1">
-            <BarChart3 className="w-3 h-3" />
-            <span>Consumed {approvedFood.times_consumed} times</span>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          fontSize: '0.8rem',
+          color: 'var(--color-sage-500)',
+          marginBottom: '1rem',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <BarChart3 style={{ width: '14px', height: '14px' }} />
+            <span>{approvedFood.times_consumed} ganger</span>
           </div>
-          <div className="flex items-center space-x-1">
-            <Clock className="w-3 h-3" />
-            <span>Last: {formatLastConsumed(approvedFood.last_consumed)}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <Clock style={{ width: '14px', height: '14px' }} />
+            <span>Sist: {formatLastConsumed(approvedFood.last_consumed)}</span>
           </div>
           {approvedFood.avg_reaction_score > 0 && (
-            <div className="flex items-center space-x-1">
-              <span>Avg reaction: {approvedFood.avg_reaction_score}/10</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span>Gjennomsnitt: {approvedFood.avg_reaction_score}/10</span>
             </div>
           )}
         </div>
 
         {/* Notes section */}
         {isEditing ? (
-          <div className="mb-3">
+          <div style={{ marginBottom: '1rem' }}>
             <textarea
               value={editingFood.notes}
               onChange={(e) => setEditingFood({ ...editingFood, notes: e.target.value })}
-              className="w-full p-2 border border-gray-300 rounded text-sm"
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '2px solid var(--color-sage-200)',
+                borderRadius: 'var(--radius-soft)',
+                fontSize: '0.9rem',
+                fontFamily: 'var(--font-body)',
+                resize: 'vertical',
+              }}
               rows={2}
-              placeholder="Add your personal notes..."
+              placeholder="Legg til personlige notater..."
             />
-            <div className="flex space-x-2 mt-2">
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
               <button
                 onClick={() => updateNotes(approvedFood, editingFood.notes)}
-                className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: 'var(--color-medical-600)',
+                  color: 'white',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
               >
-                Save
+                Lagre
               </button>
               <button
                 onClick={() => setEditingFood(null)}
-                className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: 'var(--color-sage-100)',
+                  color: 'var(--color-sage-700)',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
               >
-                Cancel
+                Avbryt
               </button>
             </div>
           </div>
         ) : approvedFood.notes ? (
-          <div className="mb-3 p-2 bg-gray-50 rounded text-xs text-gray-700">
+          <div style={{
+            marginBottom: '1rem',
+            padding: '0.75rem',
+            background: 'var(--color-sage-50)',
+            borderRadius: '0.5rem',
+            fontSize: '0.85rem',
+            color: 'var(--color-sage-800)',
+            lineHeight: 1.5,
+          }}>
             {approvedFood.notes}
           </div>
         ) : null}
 
         {/* Action buttons */}
-        <div className="flex justify-between items-center">
-          <div className="flex space-x-2">
-            <button
-              onClick={() => addToDiary(approvedFood)}
-              className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 text-sm font-medium hover:bg-primary-50 px-2 py-1 rounded transition-colors"
-            >
-              <Plus className="w-3 h-3" />
-              <span>Add to Diary</span>
-            </button>
-          </div>
-          
-          <div className="flex space-x-2">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button
+            onClick={() => addToDiary(approvedFood)}
+            className="add-to-diary-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              color: 'var(--color-medical-600)',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '0.5rem',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <Plus style={{ width: '16px', height: '16px' }} />
+            <span>Legg til dagbok</span>
+          </button>
+
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button
               onClick={() => setEditingFood(approvedFood)}
-              className="text-gray-500 hover:text-blue-600 p-1"
-              title="Edit notes"
+              className="icon-btn"
+              style={{
+                color: 'var(--color-sage-500)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0.5rem',
+                borderRadius: '0.5rem',
+                transition: 'all 0.2s ease',
+              }}
+              title="Rediger notater"
             >
-              <Edit className="w-3 h-3" />
+              <Edit style={{ width: '16px', height: '16px' }} />
             </button>
             <button
               onClick={() => removeFromSafeList(approvedFood)}
-              className="text-gray-500 hover:text-red-600 p-1"
-              title="Remove from safe list"
+              className="icon-btn"
+              style={{
+                color: 'var(--color-sage-500)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0.5rem',
+                borderRadius: '0.5rem',
+                transition: 'all 0.2s ease',
+              }}
+              title="Fjern fra trygg liste"
             >
-              <Trash2 className="w-3 h-3" />
+              <Trash2 style={{ width: '16px', height: '16px' }} />
             </button>
           </div>
         </div>
@@ -438,15 +620,36 @@ export function ApprovedFoodsPage() {
   };
 
   const FilterPanel = () => (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-      <h3 className="font-medium text-gray-900 mb-4">Filter Safe Foods</h3>
-      
+    <div style={{
+      background: 'white',
+      borderRadius: 'var(--radius-gentle)',
+      border: '1px solid var(--color-sage-200)',
+      padding: '1.5rem',
+      marginBottom: '1.5rem',
+      boxShadow: 'var(--shadow-whisper)',
+    }}>
+      <h3 style={{
+        fontFamily: 'var(--font-display)',
+        fontSize: '1.1rem',
+        fontWeight: 600,
+        color: 'var(--color-sage-900)',
+        marginBottom: '1.25rem',
+      }}>
+        Filtrer trygge matvarer
+      </h3>
+
       {/* Personal tolerance filter */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Personal Tolerance Level
+      <div style={{ marginBottom: '1.25rem' }}>
+        <label style={{
+          display: 'block',
+          fontSize: '0.9rem',
+          fontWeight: 600,
+          color: 'var(--color-sage-700)',
+          marginBottom: '0.75rem',
+        }}>
+          Personlig toleransenivå
         </label>
-        <div className="flex flex-wrap gap-2">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           {Object.entries(TOLERANCE_LABELS).map(([level, info]) => (
             <button
               key={level}
@@ -455,11 +658,17 @@ export function ApprovedFoodsPage() {
                 const newTolerance = filters.tolerance === numLevel ? undefined : numLevel;
                 setFilters({ ...filters, tolerance: newTolerance });
               }}
-              className={`px-3 py-2 rounded-full text-sm font-medium border transition-colors ${
-                filters.tolerance === parseInt(level)
-                  ? `${info.bgColor} ${info.color} border-current`
-                  : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
-              }`}
+              style={{
+                padding: '0.65rem 1.25rem',
+                borderRadius: '999px',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                border: `2px solid ${filters.tolerance === parseInt(level) ? info.borderColor : 'var(--color-sage-200)'}`,
+                background: filters.tolerance === parseInt(level) ? info.bgColor : 'white',
+                color: filters.tolerance === parseInt(level) ? info.color : 'var(--color-sage-700)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
             >
               {info.label}
             </button>
@@ -468,16 +677,30 @@ export function ApprovedFoodsPage() {
       </div>
 
       {/* Category filter */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Food Category
+      <div style={{ marginBottom: '1.25rem' }}>
+        <label style={{
+          display: 'block',
+          fontSize: '0.9rem',
+          fontWeight: 600,
+          color: 'var(--color-sage-700)',
+          marginBottom: '0.75rem',
+        }}>
+          Matkategori
         </label>
         <select
           value={filters.category || ''}
           onChange={(e) => setFilters({ ...filters, category: e.target.value || undefined })}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          style={{
+            border: '2px solid var(--color-sage-200)',
+            borderRadius: 'var(--radius-soft)',
+            padding: '0.75rem 1rem',
+            fontSize: '0.9rem',
+            fontFamily: 'var(--font-body)',
+            width: '100%',
+            maxWidth: '300px',
+          }}
         >
-          <option value="">All Categories</option>
+          <option value="">Alle kategorier</option>
           {getUniqueCategories().map(category => (
             <option key={category} value={category}>{category}</option>
           ))}
@@ -485,106 +708,244 @@ export function ApprovedFoodsPage() {
       </div>
 
       {/* Recently consumed filter */}
-      <div className="mb-4">
-        <label className="flex items-center space-x-2">
+      <div style={{ marginBottom: '1.25rem' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
           <input
             type="checkbox"
             checked={filters.recentlyConsumed || false}
             onChange={(e) => setFilters({ ...filters, recentlyConsumed: e.target.checked })}
-            className="rounded text-primary-600"
+            style={{
+              width: '18px',
+              height: '18px',
+              accentColor: 'var(--color-medical-600)',
+            }}
           />
-          <span className="text-sm text-gray-700">Consumed in last 2 weeks</span>
+          <span style={{
+            fontSize: '0.9rem',
+            color: 'var(--color-sage-700)',
+            fontWeight: 500,
+          }}>
+            Spist de siste 2 ukene
+          </span>
         </label>
       </div>
 
-      <div className="flex space-x-3">
-        <button
-          onClick={() => setFilters({})}
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
-          Clear Filters
-        </button>
-      </div>
+      <button
+        onClick={() => setFilters({})}
+        style={{
+          fontSize: '0.9rem',
+          color: 'var(--color-sage-600)',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          fontWeight: 600,
+          padding: '0.5rem 0',
+          transition: 'color 0.2s ease',
+        }}
+      >
+        Nullstill filtre
+      </button>
     </div>
   );
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-12">
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '3rem 0',
+      }}>
         <LoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '2rem' }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            My Safe Foods
-          </h1>
-          <p className="text-gray-600">
-            Your personal collection of tested and approved foods
-          </p>
+      <div
+        className="page-header"
+        style={{
+          background: 'linear-gradient(135deg, var(--color-medical-500) 0%, var(--color-sage-600) 100%)',
+          borderRadius: 'var(--radius-gentle)',
+          padding: '2.5rem',
+          boxShadow: 'var(--shadow-elevated)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Decorative shapes */}
+        <div style={{
+          position: 'absolute',
+          top: '-10%',
+          right: '-5%',
+          width: '250px',
+          height: '250px',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+          borderRadius: '50%',
+          filter: 'blur(40px)',
+        }} />
+
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
+          <div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              marginBottom: '0.75rem',
+            }}>
+              <Leaf style={{ width: '32px', height: '32px', color: 'white' }} />
+              <h1 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '2.25rem',
+                fontWeight: 600,
+                color: 'white',
+                letterSpacing: '-0.02em',
+              }}>
+                Mine trygge matvarer
+              </h1>
+            </div>
+            <p style={{
+              color: 'rgba(255, 255, 255, 0.9)',
+              fontSize: '1.05rem',
+              fontWeight: 400,
+            }}>
+              Din personlige samling av testede og godkjente matvarer
+            </p>
+          </div>
+          <button
+            onClick={() => setShowCustomFoodModal(true)}
+            className="add-custom-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.875rem 1.5rem',
+              background: 'white',
+              color: 'var(--color-medical-600)',
+              fontSize: '0.95rem',
+              fontWeight: 600,
+              borderRadius: 'var(--radius-soft)',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s ease',
+            }}
+          >
+            <Plus style={{ width: '20px', height: '20px' }} />
+            <span>Legg til egendefinert</span>
+          </button>
         </div>
-        <button
-          onClick={() => setShowCustomFoodModal(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Legg til egendefinert</span>
-        </button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-2xl font-bold text-green-600">{approvedFoods.length}</div>
-          <div className="text-sm text-gray-600">Total Safe Foods</div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-2xl font-bold text-blue-600">
-            {approvedFoods.filter(af => af.personal_tolerance === 0).length}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+        {[
+          { label: 'Totalt trygge', value: approvedFoods.length, color: 'var(--color-medical-600)', bg: 'var(--color-medical-50)' },
+          { label: 'Helt trygge', value: approvedFoods.filter(af => af.personal_tolerance === 0).length, color: '#2563eb', bg: '#eff6ff' },
+          { label: 'Kategorier', value: getUniqueCategories().length, color: '#7c3aed', bg: '#f5f3ff' },
+          { label: 'Ganger spist', value: approvedFoods.reduce((sum, af) => sum + af.times_consumed, 0), color: '#ea580c', bg: '#ffedd5' },
+        ].map((stat, index) => (
+          <div
+            key={index}
+            className="stat-card-mini animate-fade-in-up"
+            style={{
+              background: 'white',
+              borderRadius: 'var(--radius-soft)',
+              padding: '1.5rem',
+              boxShadow: 'var(--shadow-whisper)',
+              border: '1px solid var(--color-sage-100)',
+              animationDelay: `${index * 80}ms`,
+            }}
+          >
+            <div style={{
+              fontSize: '2rem',
+              fontWeight: 700,
+              fontFamily: 'var(--font-display)',
+              color: stat.color,
+              marginBottom: '0.5rem',
+            }}>
+              {stat.value}
+            </div>
+            <div style={{
+              fontSize: '0.9rem',
+              color: 'var(--color-sage-600)',
+              fontWeight: 500,
+            }}>
+              {stat.label}
+            </div>
           </div>
-          <div className="text-sm text-gray-600">Completely Safe</div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-2xl font-bold text-purple-600">
-            {getUniqueCategories().length}
-          </div>
-          <div className="text-sm text-gray-600">Food Categories</div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-2xl font-bold text-orange-600">
-            {approvedFoods.reduce((sum, af) => sum + af.times_consumed, 0)}
-          </div>
-          <div className="text-sm text-gray-600">Total Consumed</div>
-        </div>
+        ))}
       </div>
 
       {/* Search and filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+      <div style={{
+        background: 'white',
+        borderRadius: 'var(--radius-gentle)',
+        boxShadow: 'var(--shadow-gentle)',
+        border: '1px solid var(--color-sage-100)',
+        padding: '1.5rem',
+      }}>
+        <div style={{ position: 'relative' }}>
+          <Search style={{
+            position: 'absolute',
+            left: '1rem',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: 'var(--color-sage-400)',
+            width: '20px',
+            height: '20px',
+          }} />
           <input
             type="text"
-            placeholder="Search your safe foods..."
+            placeholder="Søk i dine trygge matvarer..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            style={{
+              width: '100%',
+              paddingLeft: '3rem',
+              paddingRight: '1rem',
+              paddingTop: '0.875rem',
+              paddingBottom: '0.875rem',
+              border: '2px solid var(--color-sage-200)',
+              borderRadius: 'var(--radius-soft)',
+              fontSize: '0.95rem',
+              fontFamily: 'var(--font-body)',
+              transition: 'border-color 0.2s ease',
+            }}
           />
         </div>
 
-        <div className="flex items-center justify-between mt-4">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontSize: '0.9rem',
+              color: 'var(--color-sage-700)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 600,
+              padding: '0.5rem 0.75rem',
+              borderRadius: '0.5rem',
+              transition: 'all 0.2s ease',
+            }}
           >
-            <Filter className="w-4 h-4" />
-            <span>Filters</span>
+            <Filter style={{ width: '16px', height: '16px' }} />
+            <span>Filtre</span>
             {Object.values(filters).some(v => v !== undefined && v !== false) && (
-              <span className="bg-primary-100 text-primary-800 px-2 py-0.5 rounded-full text-xs">
+              <span style={{
+                background: 'var(--color-medical-100)',
+                color: 'var(--color-medical-700)',
+                padding: '0.15rem 0.5rem',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+              }}>
                 {Object.values(filters).filter(v => v !== undefined && v !== false).length}
               </span>
             )}
@@ -593,9 +954,17 @@ export function ApprovedFoodsPage() {
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="text-sm text-gray-500 hover:text-gray-700"
+              style={{
+                fontSize: '0.85rem',
+                color: 'var(--color-sage-600)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 600,
+                transition: 'color 0.2s ease',
+              }}
             >
-              Clear search
+              Tøm søk
             </button>
           )}
         </div>
@@ -616,51 +985,108 @@ export function ApprovedFoodsPage() {
 
         {filteredFoods.length > 0 ? (
           <>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Safe Foods {searchTerm && `matching "${searchTerm}"`}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <h2 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '1.4rem',
+                fontWeight: 600,
+                color: 'var(--color-sage-900)',
+              }}>
+                {searchTerm ? `Resultat for "${searchTerm}"` : 'Alle trygge matvarer'}
               </h2>
-              <div className="flex items-center space-x-4">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <button
                   onClick={toggleAllCategories}
-                  className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                  style={{
+                    fontSize: '0.9rem',
+                    color: 'var(--color-medical-600)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    transition: 'color 0.2s ease',
+                  }}
                 >
                   {expandedCategories.size === 0 ? 'Utvid alle' : 'Lukk alle'}
                 </button>
-                <p className="text-sm text-gray-600">
+                <p style={{
+                  fontSize: '0.9rem',
+                  color: 'var(--color-sage-600)',
+                  fontWeight: 500,
+                }}>
                   {filteredFoods.length} av {approvedFoods.length} matvarer
                 </p>
               </div>
             </div>
 
             {/* Category grouped list */}
-            <div className="space-y-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {getFoodsByCategory().map(([category, foods]) => {
                 const isExpanded = expandedCategories.has(category);
 
                 return (
-                  <div key={category} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div
+                    key={category}
+                    className="category-section"
+                    style={{
+                      background: 'white',
+                      borderRadius: 'var(--radius-gentle)',
+                      border: '1px solid var(--color-sage-200)',
+                      overflow: 'hidden',
+                      boxShadow: 'var(--shadow-whisper)',
+                    }}
+                  >
                     {/* Category header */}
                     <button
                       onClick={() => toggleCategory(category)}
-                      className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                      style={{
+                        width: '100%',
+                        padding: '1.25rem 1.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'background 0.2s ease',
+                      }}
                     >
-                      <div className="flex items-center space-x-3">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         {isExpanded ? (
-                          <ChevronDown className="w-5 h-5 text-gray-500" />
+                          <ChevronDown style={{ width: '20px', height: '20px', color: 'var(--color-sage-500)' }} />
                         ) : (
-                          <ChevronRight className="w-5 h-5 text-gray-500" />
+                          <ChevronRight style={{ width: '20px', height: '20px', color: 'var(--color-sage-500)' }} />
                         )}
-                        <h3 className="font-semibold text-gray-900 text-left">
+                        <h3 style={{
+                          fontFamily: 'var(--font-display)',
+                          fontSize: '1.15rem',
+                          fontWeight: 600,
+                          color: 'var(--color-sage-900)',
+                          textAlign: 'left',
+                        }}>
                           {category}
                         </h3>
-                        <span className="bg-primary-100 text-primary-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                        <span style={{
+                          background: 'var(--color-medical-100)',
+                          color: 'var(--color-medical-700)',
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: '999px',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                        }}>
                           {foods.length}
                         </span>
                       </div>
 
                       {/* Category stats */}
-                      <div className="flex items-center space-x-4 text-xs text-gray-500">
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1.5rem',
+                        fontSize: '0.85rem',
+                        color: 'var(--color-sage-500)',
+                        fontWeight: 500,
+                      }}>
                         <span>{foods.filter(f => f.personal_tolerance === 0).length} trygge</span>
                         <span>{foods.reduce((sum, f) => sum + f.times_consumed, 0)} ganger spist</span>
                       </div>
@@ -668,8 +1094,16 @@ export function ApprovedFoodsPage() {
 
                     {/* Category foods - collapsible */}
                     {isExpanded && (
-                      <div className="border-t border-gray-200 p-4 bg-gray-50">
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      <div style={{
+                        borderTop: '1px solid var(--color-sage-200)',
+                        padding: '1.5rem',
+                        background: 'var(--color-sage-50)',
+                      }}>
+                        <div style={{
+                          display: 'grid',
+                          gap: '1rem',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                        }}>
                           {foods.map((approvedFood) => (
                             <ApprovedFoodCard key={approvedFood.id} approvedFood={approvedFood} />
                           ))}
@@ -682,12 +1116,35 @@ export function ApprovedFoodsPage() {
             </div>
           </>
         ) : (
-          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-            <Shield className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <div style={{
+            textAlign: 'center',
+            padding: '3rem 1.5rem',
+            background: 'white',
+            borderRadius: 'var(--radius-gentle)',
+            border: '1px solid var(--color-sage-200)',
+            boxShadow: 'var(--shadow-whisper)',
+          }}>
+            <Shield style={{
+              width: '64px',
+              height: '64px',
+              color: 'var(--color-sage-300)',
+              margin: '0 auto 1.5rem',
+            }} />
+            <h3 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1.3rem',
+              fontWeight: 600,
+              color: 'var(--color-sage-900)',
+              marginBottom: '0.75rem',
+            }}>
               {approvedFoods.length === 0 ? 'Ingen trygge matvarer ennå' : 'Ingen matvarer passer filtrene'}
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p style={{
+              color: 'var(--color-sage-600)',
+              fontSize: '0.95rem',
+              marginBottom: '1.5rem',
+              lineHeight: 1.6,
+            }}>
               {approvedFoods.length === 0
                 ? 'Bygg din liste med trygge matvarer ved å legge til fra Mat-søk siden'
                 : 'Prøv å justere søkeord eller filtre'

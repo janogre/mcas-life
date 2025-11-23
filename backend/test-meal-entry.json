@@ -1,0 +1,9 @@
+{
+  "type": "meal",
+  "data": {
+    "food_id": 1307,
+    "amount": 150,
+    "meal_type": "breakfast",
+    "notes": "First test meal - checking database persistence"
+  }
+}

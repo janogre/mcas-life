@@ -1,0 +1,572 @@
+{
+  "categoryFixes": [],
+  "categoryMismatches": [],
+  "unknownCategoryFoods": [
+    {
+      "id": 1367,
+      "name_no": "Cellulose methyl ether, methyl cellulose",
+      "name_en": "cellulose methyl ether, methyl cellulose,",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1741,
+      "name_no": "Brilliant svart bn, brilliant svart pn, brilliant svart",
+      "name_en": "Brilliant Black BN, Brilliant Black PN, Brilliant Black",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1796,
+      "name_no": "Brilliant svart bn, brilliant svart pn, brilliant svart",
+      "name_en": "Brilliant Black BN, Brilliant Black PN, Brilliant Black",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 970,
+      "name_no": "Common evening-primrose oil (oenothera biennis)",
+      "name_en": "common evening-primrose oil (Oenothera biennis)",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 971,
+      "name_no": "Nattlysolje (oenothera biennis)",
+      "name_en": "evening primrose oil (Oenothera biennis)",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1010,
+      "name_no": "mangold, sveitsisk mangold (beta vulgaris subsp. vulgaris)",
+      "name_en": "chard, Swiss chard (Beta vulgaris subsp. vulgaris)",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1052,
+      "name_no": "savoy kål",
+      "name_en": "Savoy cabbage",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1091,
+      "name_no": "sveitserbladbete (beta vulgaris subsp. vulgaris)",
+      "name_en": "Swiss chard (Beta vulgaris subsp. vulgaris)",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1170,
+      "name_no": "Solanum muricatum, pepino, pepino dulce, pepino",
+      "name_en": "Solanum muricatum, pepino, pepino dulce, pepino",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1190,
+      "name_no": "Sumak, sumach, sicilian sumak, rhus coraria",
+      "name_en": "sumac, sumach, Sicilian sumac, Rhus coraria",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1247,
+      "name_no": "Rhus coriaria, sicilian sumak, tanner’s sumach, elm-",
+      "name_en": "Rhus coriaria, Sicilian sumac, tanner’s sumach, elm-",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1265,
+      "name_no": "healing spring vann med lots av sulfur, fluorine",
+      "name_en": "?healing spring water with lots of sulfur, fluorine,",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1346,
+      "name_no": "calcium polyphosphate, e452",
+      "name_en": "calcium polyphosphate, E452",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1365,
+      "name_no": "Carob, carob powder, carob pod meal",
+      "name_en": "carob, carob powder, carob pod meal",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1366,
+      "name_no": "Cellulose ethyl ether, ethyl cellulose, ethylcellulose",
+      "name_en": "cellulose ethyl ether, ethyl cellulose, ethylcellulose,",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1386,
+      "name_no": "E1201, polyvinylpyrrolidone, pvp, polyvidone",
+      "name_en": "E1201, polyvinylpyrrolidone, PVP, polyvidone,",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1443,
+      "name_no": "E380, ammonium citrate, triammonium citrate",
+      "name_en": "E380, ammonium citrate, triammonium citrate",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1480,
+      "name_no": "Fizzy drinks",
+      "name_en": "fizzy drinks",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1540,
+      "name_no": "Polyvinylpyrrolidone, pvp, polyvidone, povidone",
+      "name_en": "Polyvinylpyrrolidone, PVP, polyvidone, povidone,",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1561,
+      "name_no": "Rød 2g, acid rød 1, azogeranine, azohpoloxine, e128",
+      "name_en": "Red 2G, acid red 1, azogeranine, azohpoloxine, E128",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1580,
+      "name_no": "Povidone, polyvidone, polyvinylpyrrolidone, pvp",
+      "name_en": "Povidone, polyvidone, polyvinylpyrrolidone, PVP,",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1613,
+      "name_no": "Vanillin (synthetic)",
+      "name_en": "vanillin (synthetic)",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 949,
+      "name_no": "Tapioka starch",
+      "name_en": "tapioca starch",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 931,
+      "name_no": "Bulgur, burghul, riffoth",
+      "name_en": "bulgur, burghul, riffoth",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 969,
+      "name_no": "Pecan nut",
+      "name_en": "pecan nut",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 988,
+      "name_no": "Linfrøolje, linfrøolje, linfrø oil",
+      "name_en": "linseed oil, flaxseed oil, flax oil",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 989,
+      "name_no": "Primrose oil (oenothera biennis)",
+      "name_en": "primrose oil (Oenothera biennis)",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 990,
+      "name_no": "valnøttolje",
+      "name_en": "walnut oil",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 991,
+      "name_no": "aubergine",
+      "name_en": "aubergine",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 972,
+      "name_no": "Linfrøolje, linfrø oil, linfrøolje",
+      "name_en": "flaxseed oil, flax oil, linseed oil",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1008,
+      "name_no": "Bok choy",
+      "name_en": "bok choy",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1009,
+      "name_no": "brinjal",
+      "name_en": "brinjal",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1029,
+      "name_no": "Ladies’ fingers, okra, ochro",
+      "name_en": "ladies’ fingers, okra, ochro",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1049,
+      "name_no": "Okra, okro, ochro, ladies’ fingers",
+      "name_en": "okra, okro, ochro, ladies’ fingers",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1050,
+      "name_no": "Pok choi",
+      "name_en": "pok choi",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1051,
+      "name_no": "rød kål",
+      "name_en": "red cabbage",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1053,
+      "name_no": "sølv bete, sølvbete, mangold",
+      "name_en": "silver beet, silverbeet, chard",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1069,
+      "name_no": "Hyllebær, elderberries",
+      "name_en": "elderberry, elderberries",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1070,
+      "name_no": "kiwi frukt",
+      "name_en": "kiwi fruit",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1090,
+      "name_no": "stikknestle, vanlig nestle, brennestle (urtica",
+      "name_en": "stinging nettle, common nettle, burn nettle (Urtica",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1129,
+      "name_no": "druer",
+      "name_en": "grapes",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1130,
+      "name_no": "guava",
+      "name_en": "guava",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1151,
+      "name_no": "kvede",
+      "name_en": "quince",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1152,
+      "name_no": "Linfrø seeds",
+      "name_en": "flax seeds",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1150,
+      "name_no": "sitronskall, sitron zest",
+      "name_en": "lemon peel, lemon zest",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1210,
+      "name_no": "Spirulina (arthrospira)",
+      "name_en": "spirulina (Arthrospira)",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1208,
+      "name_no": "Lingzhi, ganoderma lingzhi, reishi",
+      "name_en": "lingzhi, Ganoderma lingzhi, reishi",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1209,
+      "name_no": "Reishi, lingzhi, ganoderma lingzhi",
+      "name_en": "reishi, lingzhi, Ganoderma lingzhi",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1227,
+      "name_no": "lakrisrot",
+      "name_en": "liquorice root",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1246,
+      "name_no": "kjøttekstrakt",
+      "name_en": "meat extract",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1266,
+      "name_no": "brennevin, klar (fargeløs)",
+      "name_en": "liquor, clear (colourless)",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1267,
+      "name_no": "snaps, klar (fargeløs)",
+      "name_en": "schnapps, clear (colourless)",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1268,
+      "name_no": "brennevin, klar (fargeløs)",
+      "name_en": "spirits, clear (colourless)",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1285,
+      "name_no": "stinging nesle herbal tea (urtica dioica)",
+      "name_en": "stinging nettle herbal tea (Urtica dioica)",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1305,
+      "name_no": "agar, agar-agar, e406",
+      "name_en": "agar, agar-agar, E406",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1325,
+      "name_no": "ammonium citrate, triammonium citrate, e380",
+      "name_en": "ammonium citrate, triammonium citrate, E380",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1384,
+      "name_no": "dicalcium phosphate, dicalcium hydrogen",
+      "name_en": "dicalcium phosphate, dicalcium hydrogen",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1385,
+      "name_no": "dipotassium phosphate, dipotassium hydrogen",
+      "name_en": "dipotassium phosphate, dipotassium hydrogen",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1601,
+      "name_no": "Starch, amylum",
+      "name_en": "starch, amylum",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1387,
+      "name_no": "E1202, polyvinylpolypyrrolidone",
+      "name_en": "E1202, polyvinylpolypyrrolidone",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1461,
+      "name_no": "E406, agar, agar-agar",
+      "name_en": "E406, agar, agar-agar",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1481,
+      "name_no": "Flavourings, flavorings",
+      "name_en": "flavourings, flavorings",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1519,
+      "name_no": "Hypromellose, hydroxypropyl methylcellulose",
+      "name_en": "hypromellose, hydroxypropyl methylcellulose,",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1520,
+      "name_no": "Menthol",
+      "name_en": "Menthol",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1521,
+      "name_no": "Modified starch, starch derivatives",
+      "name_en": "modified starch, starch derivatives",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1522,
+      "name_no": "Monocalcium phosphate, e340",
+      "name_en": "Monocalcium phosphate, E340",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1539,
+      "name_no": "Polyvinylpolypyrrolidone, e1202",
+      "name_en": "Polyvinylpolypyrrolidone, E1202",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1559,
+      "name_no": "Monopotassium phosphate, e340",
+      "name_en": "Monopotassium phosphate, E340",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1560,
+      "name_no": "Potassium polyphosphate, e452",
+      "name_en": "Potassium polyphosphate, E452",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1562,
+      "name_no": "salicylic acid",
+      "name_en": "salicylic acid",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1563,
+      "name_no": "Sodium polyphosphate, e452",
+      "name_en": "Sodium polyphosphate, E452",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1582,
+      "name_no": "Sodium-calcium polyphosphate, e452",
+      "name_en": "Sodium-calcium polyphosphate, E452",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1600,
+      "name_no": "Starch derivatives, modified starch",
+      "name_en": "starch derivatives, modified starch",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1581,
+      "name_no": "Soapwort extract (saponaria) in halva",
+      "name_en": "Soapwort extract (Saponaria) in Halva",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1610,
+      "name_no": "Triammonium citrate, ammonium citrate, e380",
+      "name_en": "Triammonium citrate, ammonium citrate, E380",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1611,
+      "name_no": "Tricalcium phosphate, e340",
+      "name_en": "Tricalcium phosphate, E340",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1612,
+      "name_no": "Tripotassium phosphate, e340",
+      "name_en": "Tripotassium phosphate, E340",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1614,
+      "name_no": "Calcium",
+      "name_en": "calcium",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1615,
+      "name_no": "Fir shoot, fir buds",
+      "name_en": "fir shoot, fir buds",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1616,
+      "name_no": "Guaranæ (paullinia cupana)",
+      "name_en": "guaranÆ (Paullinia cupana)",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1617,
+      "name_no": "Iodized table salt",
+      "name_en": "iodized table salt",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1630,
+      "name_no": "Kimchi",
+      "name_en": "kimchi",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1631,
+      "name_no": "Seitan",
+      "name_en": "seitan",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1637,
+      "name_no": "razil nut",
+      "name_en": "razil nut",
+      "category": "Ukjent kategori"
+    },
+    {
+      "id": 1649,
+      "name_no": "GuaranÆ (Paullinia cupana)",
+      "name_en": "GuaranÆ (Paullinia cupana)",
+      "category": "Ukjent kategori"
+    }
+  ],
+  "jsonCategories": [
+    "Animalske matvarer - Meieriprodukter",
+    "Beverages",
+    "Dairy products",
+    "Drikke - Alcoholic beverages",
+    "Drikke - Caffeine drinks",
+    "Eggs",
+    "Fats and oils",
+    "Fish",
+    "Food additives",
+    "Fruits",
+    "Herbs",
+    "Meat",
+    "Mushrooms, fungi and algae",
+    "Nuts",
+    "Preparations, mixtures",
+    "Sea food",
+    "Seeds",
+    "Spices, seasoning, aroma",
+    "Starch suppliers",
+    "Sweeteners",
+    "Ukjent kategori",
+    "Vegetabilske matvarer - Frukt",
+    "Vegetabilske matvarer - Stivelse",
+    "Vegetables",
+    "Vitamins, dietary minerals, trace elements, stimulants"
+  ],
+  "dbCategories": [
+    "Animalske matvarer - Meieriprodukter",
+    "Beverages",
+    "Dairy products",
+    "Drikke - Alcoholic beverages",
+    "Drikke - Alkohol",
+    "Drikke - Caffeine drinks",
+    "Eggs",
+    "Fats and oils",
+    "Fish",
+    "Food additives",
+    "Fruits",
+    "Herbs",
+    "Meat",
+    "Mushrooms, fungi and algae",
+    "Nuts",
+    "Preparations, mixtures",
+    "Sea food",
+    "Seeds",
+    "Spices, seasoning, aroma",
+    "Starch suppliers",
+    "Sweeteners",
+    "Ukjent kategori",
+    "Vegetabilske matvarer - Frukt",
+    "Vegetabilske matvarer - Stivelse",
+    "Vegetables",
+    "Vitamins, dietary minerals, trace elements, stimulants"
+  ],
+  "totalFixes": 0
+}

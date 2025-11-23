@@ -497,4 +497,42 @@ router.get('/needing-follow-up', async (req, res) => {
   }
 });
 
+/**
+ * DELETE /symptoms/:id
+ * Delete a symptom entry
+ */
+router.delete('/:id', async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const symptomId = parseInt(req.params.id);
+
+    if (isNaN(symptomId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Ugyldig symptom-ID',
+      });
+    }
+
+    const deleted = await SymptomService.deleteSymptom(userId, symptomId);
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        error: 'Symptom ikke funnet eller du har ikke tilgang til å slette det',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Symptom slettet',
+    });
+  } catch (error) {
+    console.error('Error deleting symptom:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Kunne ikke slette symptom',
+    });
+  }
+});
+
 export { router as symptomRoutes };

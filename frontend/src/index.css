@@ -1,14 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Calm Clinical Precision Color Palette */
+    --color-sage-50: #f7f9f7;
+    --color-sage-100: #eef2ef;
+    --color-sage-200: #dce5de;
+    --color-sage-300: #b8c9bc;
+    --color-sage-400: #8fa896;
+    --color-sage-500: #6b8870;
+    --color-sage-600: #556d5a;
+    --color-sage-700: #425548;
+    --color-sage-800: #324239;
+    --color-sage-900: #1e2921;
+
+    --color-medical-50: #f0f9f4;
+    --color-medical-100: #daf1e4;
+    --color-medical-200: #b7e3ca;
+    --color-medical-300: #86cfaa;
+    --color-medical-400: #51b485;
+    --color-medical-500: #2d9a68;
+    --color-medical-600: #1f7d53;
+    --color-medical-700: #1a6444;
+    --color-medical-800: #175038;
+    --color-medical-900: #14422f;
+
+    --color-warm-50: #faf8f5;
+    --color-warm-100: #f5f1eb;
+    --color-warm-200: #e9e0d4;
+    --color-warm-300: #d9c9b5;
+    --color-warm-400: #c4ad8e;
+    --color-warm-500: #a88d67;
+    --color-warm-600: #8a7253;
+    --color-warm-700: #6d5a43;
+    --color-warm-800: #574a38;
+    --color-warm-900: #3f3528;
+
+    --color-alert-amber: #f59e0b;
+    --color-alert-red: #dc2626;
+    --color-alert-blue: #3b82f6;
+
+    /* Typography */
+    --font-display: 'Crimson Pro', Georgia, serif;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+
+    /* Spacing & Rhythm */
+    --space-organic: 1.618rem;
+    --radius-soft: 1rem;
+    --radius-gentle: 1.5rem;
+
+    /* Shadows for depth */
+    --shadow-whisper: 0 2px 8px rgba(46, 66, 51, 0.04), 0 1px 2px rgba(46, 66, 51, 0.02);
+    --shadow-gentle: 0 4px 16px rgba(46, 66, 51, 0.06), 0 2px 4px rgba(46, 66, 51, 0.03);
+    --shadow-elevated: 0 12px 32px rgba(46, 66, 51, 0.1), 0 4px 8px rgba(46, 66, 51, 0.05);
+  }
+
   html {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: var(--font-body);
   }
   
   body {
-    @apply bg-gray-50 text-gray-900;
+    background-color: var(--color-sage-50);
+    color: var(--color-sage-900);
     /* Prevent zoom on iOS */
     -webkit-text-size-adjust: 100%;
     /* Smooth scrolling */

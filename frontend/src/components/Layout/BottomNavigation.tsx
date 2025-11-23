@@ -24,9 +24,9 @@ const navigationItems = [
     icon: Search,
   },
   {
-    name: 'Oppskrifter',
-    href: '/recipes/search',
-    icon: ChefHat,
+    name: 'Symptomer',
+    href: '/symptoms',
+    icon: AlertCircle,
   },
   {
     name: 'Dagbok',

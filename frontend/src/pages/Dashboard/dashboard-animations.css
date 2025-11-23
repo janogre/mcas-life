@@ -1,0 +1,243 @@
+/* Dashboard Animations - Calm Clinical Precision */
+
+/* Fade in with upward movement - staggered entry */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  opacity: 0;
+}
+
+/* Floating animation for hero icon */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Hero gradient animation */
+.dashboard-hero {
+  animation: hero-gradient 8s ease infinite;
+  background-size: 200% 200%;
+}
+
+@keyframes hero-gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Stat card hover effects */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(107, 136, 112, 0.03),
+    transparent
+  );
+  transition: left 0.6s ease;
+}
+
+.stat-card:hover::before {
+  left: 100%;
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-gentle);
+  transform: translateY(-2px);
+}
+
+.stat-card:hover > div > div:first-child {
+  transform: scale(1.08);
+}
+
+/* Quick action button interactions */
+.quick-action-btn {
+  position: relative;
+}
+
+.quick-action-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-soft);
+  background: radial-gradient(circle at center, rgba(45, 154, 104, 0.08), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.quick-action-btn:hover::after {
+  opacity: 1;
+}
+
+.quick-action-btn:hover {
+  border-color: var(--color-medical-300) !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-whisper);
+}
+
+.quick-action-btn:hover > div:first-child {
+  transform: scale(1.1) rotate(-3deg);
+}
+
+.quick-action-btn:active {
+  transform: translateY(0);
+}
+
+/* Activity item hover */
+.activity-item:hover {
+  background: var(--color-sage-50);
+  transform: translateX(4px);
+}
+
+.activity-item:hover > div:first-child {
+  transform: scale(1.05);
+}
+
+/* Insight card hover effects */
+.insight-card {
+  position: relative;
+}
+
+.insight-card::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: var(--radius-soft);
+  background: linear-gradient(135deg,
+    var(--color-medical-200),
+    var(--color-sage-200)
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.insight-card:hover::before {
+  opacity: 0.3;
+}
+
+.insight-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(46, 66, 51, 0.08);
+}
+
+.insight-card:hover > div > div:first-child {
+  transform: rotate(-5deg) scale(1.05);
+}
+
+/* Smooth transitions for all interactive elements */
+button, a {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ripple effect on click */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Loading state shimmer */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-sage-100) 0%,
+    var(--color-sage-200) 20%,
+    var(--color-sage-100) 40%,
+    var(--color-sage-100) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* Micro-interaction: pulse on important elements */
+@keyframes subtle-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.pulse-subtle {
+  animation: subtle-pulse 3s ease-in-out infinite;
+}
+
+/* Smooth page transition */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.page-transition {
+  animation: page-enter 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus states with organic glow */
+*:focus-visible {
+  outline: 2px solid var(--color-medical-400);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

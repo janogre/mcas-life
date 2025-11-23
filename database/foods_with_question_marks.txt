@@ -1,0 +1,71 @@
+      "compatibility": 0,	      "name_en": "? Savoy cabbage",
+      "compatibility": 1,	
+      "compatibility": 1,	      "name_en": "? ? L B liquor, clear (colourless)",
+      "compatibility": 1,	      "name_en": "? ? stinging nettle, common nettle, burn nettle (Urtica",
+      "compatibility": 1,	      "name_en": "? agar, agar-agar, E406",
+      "compatibility": 1,	      "name_en": "? ammonium citrate, triammonium citrate, E380",
+      "compatibility": 1,	      "name_en": "? apple pear (Pyrus pyrifolia)",
+      "compatibility": 1,	      "name_en": "? Brilliant Blue FCF, E133, FD&C Blue No.1, Acid Blue 9,",
+      "compatibility": 1,	      "name_en": "? monocalcium phosphate, E340",
+      "compatibility": 1,	      "name_en": "? monopotassium phosphate, E340",
+      "compatibility": 1,	      "name_en": "? polyvinylpolypyrrolidone, E1202",
+      "compatibility": 1,	      "name_en": "? polyvinylpyrrolidone, PVP, polyvidone, povidone,",
+      "compatibility": 1,	      "name_en": "? potassium polyphosphate, E452",
+      "compatibility": 1,	      "name_en": "? silver beet, silverbeet, chard",
+      "compatibility": 1,	      "name_en": "? sodium polyphosphate, E452",
+      "compatibility": 1,	      "name_en": "? tricalcium phosphate, E340",
+      "compatibility": 1,	      "name_en": "? tripotassium phosphate, E340",
+      "compatibility": 2,	      "name_en": "? ? L B schnapps, clear (colourless)",
+      "compatibility": 2,	      "name_en": "? ? L B spirits, clear (colourless)",
+      "compatibility": 2,	      "name_en": "? ? stinging nettle herbal tea (Urtica dioica)",
+      "compatibility": 2,	      "name_en": "? Korean pear (Pyrus pyrifolia)",
+      "compatibility": 2,	      "name_en": "? povidone, polyvidone, polyvinylpyrrolidone, PVP,",
+      "compatibility": 2,	      "name_en": "? red wine vinegar",
+      "compatibility": 2,	      "name_en": "? sodium-calcium polyphosphate, E452",
+      "compatibility": 2,	      "name_en": "? Swiss chard (Beta vulgaris subsp. vulgaris)",
+      "compatibility": 2,	      "name_en": "? triammonium citrate, ammonium citrate, E380",
+      "compatibility": 3,	      "name_en": "? healing spring water with lots of sulfur, fluorine,",
+      "compatibility": 3,	      "name_en": "? white wine vinegar",
+      "name_en": "? Asian pear (Pyrus pyrifolia)",	      "name_en": "? Chinese pear (Pyrus pyrifolia)",
+      "name_en": "? E133, Brilliant Blue FCF, FD&C Blue No.1, Acid Blue 9,",	      "name_en": "? E142, Green S, Food Green S, FD&C Green 4, Acid green",
+      "name_en": "? garden cress (Lepidium sativum)",	      "name_en": "? red cabbage",
+      "name_en": "? Green S, E142, Food Green S, FD&C Green 4, Acid green",	      "name_en": "? menthol",
+      "name_en": "? Japanese pear (Pyrus pyrifolia)",	      "name_en": "? L kiwi fruit",
+      "name_en": "? nashi pear (Pyrus pyrifolia)",	      "name_en": "? naspati (Pyrus pyrifolia)",
+      "name_en": "? palm sugar",	      "name_en": "? ? ? meat extract",
+      "name_en": "? papple (Pyrus pyrifolia)",	      "name_en": "? Persian pear (Pyrus pyrifolia)",
+      "name_en": "? sand pear (Pyrus pyrifolia)",	      "name_en": "? Taiwanese pear (Pyrus pyrifolia)",
+      "name_en": "? three-halves pear (Pyrus pyrifolia)",	      "name_en": "? zodiac pear (Pyrus pyrifolia)",
+? ? ? aubergine|2
+? ? ? barley malt, malt, malt extract|2
+? ? ? brinjal|2
+? ? ? eggplant|2
+? ? ? malt, malt extract, barley malt|2
+? ? smoked fish (any)|3
+? ? smoked meat (any)|3
+? blue cheeses, mold cheeses|2
+? calcium polyphosphate, E452|2
+? chard, Swiss chard (Beta vulgaris subsp. vulgaris)|1
+? dicalcium phosphate, dicalcium hydrogen|1
+? dipotassium phosphate, dipotassium hydrogen|1
+? dried meat (any kind)|3
+? dry-cured ham|3
+? E1201, polyvinylpyrrolidone, PVP, polyvidone,|1
+? E1202, polyvinylpolypyrrolidone|1
+? E127, erythrosine|3
+? E380, ammonium citrate, triammonium citrate|1
+? E406, agar, agar-agar|1
+? erythrosine, E127|3
+? ewe’s milk, sheep’s milk|0
+? goat’s milk, goat milk|0
+? grapes|0
+? guava|2
+? ham (dried, cured)|3
+? L lemon peel, lemon zest|2
+? L orange peel, orange zest|3
+? liquorice root|2
+? mold cheeses, mould cheeses|2
+? quince|0
+? salami|3
+? sheep’s milk, sheep milk|0
+? walnut oil|2

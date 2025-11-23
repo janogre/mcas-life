@@ -256,6 +256,11 @@ export const foods = pgTable('foods', {
   source: varchar('source', { length: 20 }).notNull().default('sighi'), // sighi, community, fooddata, openfoodfacts, custom
   created_by_user_id: integer('created_by_user_id').references(() => users.id, { onDelete: 'set null' }), // For custom user-created foods
 
+  // Display names without SIGHI uncertainty notation (? prefix)
+  display_name_en: varchar('display_name_en', { length: 255 }),
+  display_name_no: varchar('display_name_no', { length: 255 }),
+  sighi_uncertainty_level: integer('sighi_uncertainty_level').notNull().default(0), // 0 = certain, 1 = ?, 2 = ??, 3 = ???
+
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow()
 }, (table) => ({
@@ -768,4 +773,5 @@ export type NewSymptomTemplate = typeof symptomTemplates.$inferInsert;
 export type SymptomEntry = typeof symptomEntries.$inferSelect;
 export type NewSymptomEntry = typeof symptomEntries.$inferInsert;
 export type SavedRecipe = typeof savedRecipes.$inferSelect;
-export type NewSavedRecipe = typeof savedRecipes.$inferInsert;
+export type NewSavedRecipe = typeof savedRecipes.$inferInsert; 
+

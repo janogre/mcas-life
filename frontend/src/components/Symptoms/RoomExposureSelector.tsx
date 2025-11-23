@@ -32,17 +32,18 @@ export const RoomExposureSelector: React.FC<RoomExposureSelectorProps> = ({ onCo
   const loadRooms = async () => {
     try {
       setLoading(true);
-      const response = await airthingsApi.getStatus();
+      const statusResponse = await airthingsApi.getStatus();
 
-      // Check if Airthings is configured
-      if (!response.success || !response.data?.configured) {
+      // Check if Airthings is configured (Client Credentials flow)
+      if (!statusResponse.success || !statusResponse.data?.configured) {
         setAvailableRooms([]);
         setError(null); // Not an error, just not configured
         setLoading(false);
         return;
       }
 
-      const devices = response.data.devices || [];
+      // Get devices from status response (includes devices list)
+      const devices = statusResponse.data.devices || [];
 
       const rooms: Room[] = devices.map((device: any) => ({
         id: device.id,
@@ -200,13 +201,13 @@ export const RoomExposureSelector: React.FC<RoomExposureSelectorProps> = ({ onCo
                       <input
                         type="range"
                         min="5"
-                        max="120"
+                        max="300"
                         step="5"
                         value={timeSpent}
                         onChange={(e) => updateTimeEstimate(room.id, parseInt(e.target.value))}
                         className="flex-1 h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer"
                       />
-                      <span className="text-xs text-gray-500">2 timer</span>
+                      <span className="text-xs text-gray-500">5 timer</span>
                     </div>
                   </div>
                 )}

@@ -12,6 +12,7 @@ import { db } from '../db/connection.js';
 import { users } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { ValidationError } from '../middleware/errorHandler.js';
+import { authenticateToken } from '../services/auth/index.js';
 
 const router = express.Router();
 
@@ -64,7 +65,7 @@ router.get('/auth-url', async (req, res) => {
  * POST /api/airthings/connect
  * Complete OAuth flow and save tokens
  */
-router.post('/connect', async (req, res, next) => {
+router.post('/connect', authenticateToken, async (req, res, next) => {
   try {
     const { code } = connectSchema.parse(req.body);
     const userId = req.user!.userId;
@@ -121,7 +122,7 @@ router.post('/connect', async (req, res, next) => {
  * POST /api/airthings/disconnect
  * Disconnect Airthings integration
  */
-router.post('/disconnect', async (req, res) => {
+router.post('/disconnect', authenticateToken, async (req, res) => {
   try {
     const userId = req.user!.userId;
 
@@ -152,7 +153,7 @@ router.post('/disconnect', async (req, res) => {
  * GET /api/airthings/status
  * Check if user has connected Airthings
  */
-router.get('/status', async (req, res) => {
+router.get('/status', authenticateToken, async (req, res) => {
   try {
     const userId = req.user!.userId;
 
@@ -183,7 +184,7 @@ router.get('/status', async (req, res) => {
  * GET /api/airthings/devices
  * Get list of user's Airthings devices
  */
-router.get('/devices', async (req, res) => {
+router.get('/devices', authenticateToken, async (req, res) => {
   try {
     const userId = req.user!.userId;
     const accessToken = await airthingsService.getValidAccessToken(userId);
@@ -214,7 +215,7 @@ router.get('/devices', async (req, res) => {
  * GET /api/airthings/current
  * Get current indoor air quality data
  */
-router.get('/current', async (req, res) => {
+router.get('/current', authenticateToken, async (req, res) => {
   try {
     const userId = req.user!.userId;
 

@@ -16,7 +16,12 @@
       "Bash(npx drizzle-kit:*)",
       "Bash(rm:*)",
       "Bash(npx tsc:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(dir /b \"C:\\Kode-prosjekter-lokalt\")",
+      "Bash(findstr:*)",
+      "Bash(python -m json.tool:*)",
+      "Skill(frontend-design)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": [],

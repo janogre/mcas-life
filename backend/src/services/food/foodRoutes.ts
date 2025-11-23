@@ -185,12 +185,19 @@ router.get('/search', searchRateLimit, async (req, res) => {
 
 // ==================== USER-SPECIFIC ENDPOINTS ====================
 
+// Generous rate limit for approved foods (frequently accessed by diary page)
+const approvedFoodsRateLimit = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // 100 requests per minute
+  message: { error: 'Too many approved foods requests, please try again later' }
+});
+
 /**
  * GET /api/foods/approved
  * Get user's approved foods
  * Requires authentication
  */
-router.get('/approved', authenticateToken, async (req, res) => {
+router.get('/approved', approvedFoodsRateLimit, authenticateToken, async (req, res) => {
   try {
     const userId = req.user!.userId;
     const approvedFoods = await foodService.getUserApprovedFoods(userId);
@@ -553,12 +560,19 @@ router.get('/triggers', async (req, res) => {
   }
 });
 
+// Generous rate limit for food detail fetching (used by diary page)
+const foodDetailRateLimit = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 200, // 200 requests per minute (generous for bulk loading)
+  message: { error: 'Too many food detail requests, please try again later' }
+});
+
 /**
  * GET /api/foods/:id
  * Get detailed food information by ID
  * Public endpoint
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', foodDetailRateLimit, async (req, res) => {
   try {
     const foodId = parseInt(req.params.id);
     if (isNaN(foodId)) {
