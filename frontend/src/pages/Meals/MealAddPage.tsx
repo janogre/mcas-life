@@ -263,7 +263,7 @@ export function MealAddPage() {
                     className="w-full p-3 text-left hover:bg-gray-50 flex items-center justify-between"
                   >
                     <div>
-                      <div className="font-medium">{food.name}</div>
+                      <div className="font-medium">{food.name_no}</div>
                       <div className="text-sm text-gray-500">{food.category}</div>
                     </div>
                     <div
@@ -285,7 +285,7 @@ export function MealAddPage() {
                   <div key={index} className="bg-white border border-gray-200 rounded-lg p-3">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <div className="font-medium">{item.food.name}</div>
+                        <div className="font-medium">{item.food.name_no}</div>
                         <div className="text-sm text-gray-500">{item.food.category}</div>
                       </div>
                       <button
