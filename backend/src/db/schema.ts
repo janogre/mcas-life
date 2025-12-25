@@ -49,6 +49,8 @@ export const medicationTypeEnum = pgEnum('medication_type', ['mcas', 'prescripti
 export const activityTypeEnum = pgEnum('activity_type', ['temperature_change', 'social_trigger', 'physical_activity']);
 export const temperatureChangeEnum = pgEnum('temperature_change_type', ['hot_to_cold', 'cold_to_hot']);
 export const physicalIntensityEnum = pgEnum('physical_intensity', ['light', 'moderate', 'intense']);
+export const illnessTypeEnum = pgEnum('illness_type', ['cold', 'flu', 'infection', 'stomach_bug', 'fever', 'other']);
+export const illnessStatusEnum = pgEnum('illness_status', ['incubating', 'active', 'recovering', 'resolved']);
 
 // Users table - Core user management
 export const users = pgTable('users', {
@@ -877,6 +879,52 @@ export const activityEntries = pgTable('activity_entries', {
   userTimeIdx: index('activity_entries_user_time_idx').on(table.user_id, table.time_started)
 }));
 
+// Illness Entries table - Track illness episodes and their impact on MCAS
+export const illnessEntries = pgTable('illness_entries', {
+  id: serial('id').primaryKey(),
+  user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+
+  // Illness classification
+  illness_type: illnessTypeEnum('illness_type').notNull(),
+  custom_illness_name: varchar('custom_illness_name', { length: 255 }), // For 'other' type
+
+  // Illness status tracking
+  status: illnessStatusEnum('status').notNull().default('incubating'),
+
+  // Symptom details
+  symptoms: jsonb('symptoms').$type<string[]>(), // Array of symptoms: ['fever', 'cough', 'headache', etc.]
+  severity: integer('severity').notNull(), // 1-10 scale
+
+  // Temperature tracking
+  has_fever: boolean('has_fever').notNull().default(false),
+  temperature_celsius: real('temperature_celsius'), // Body temperature
+
+  // Timeline
+  first_symptoms_at: timestamp('first_symptoms_at').notNull(), // When first noticed
+  became_sick_at: timestamp('became_sick_at'), // When fully symptomatic
+  recovered_at: timestamp('recovered_at'), // When recovered
+
+  // MCAS impact
+  mcas_flare_during_illness: boolean('mcas_flare_during_illness').notNull().default(false),
+  mcas_severity_increase: integer('mcas_severity_increase'), // 1-10 scale of how much worse MCAS got
+
+  // Treatment
+  treatments_taken: jsonb('treatments_taken').$type<string[]>(), // Medications/remedies taken
+
+  // Context
+  suspected_source: varchar('suspected_source', { length: 255 }), // e.g., "From kids", "After shopping"
+  notes: text('notes'),
+
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow()
+}, (table) => ({
+  userIdIdx: index('illness_entries_user_id_idx').on(table.user_id),
+  illnessTypeIdx: index('illness_entries_illness_type_idx').on(table.illness_type),
+  statusIdx: index('illness_entries_status_idx').on(table.status),
+  firstSymptomsIdx: index('illness_entries_first_symptoms_idx').on(table.first_symptoms_at),
+  userTimeIdx: index('illness_entries_user_time_idx').on(table.user_id, table.first_symptoms_at)
+}));
+
 // Note: Zod validation schemas will be added when drizzle-zod compatibility is resolved
 
 // Export all table types for use in services
@@ -897,5 +945,7 @@ export type NewMedicationCatalog = typeof medicationsCatalog.$inferInsert;
 export type UserMedication = typeof userMedications.$inferSelect;
 export type NewUserMedication = typeof userMedications.$inferInsert;
 export type ActivityEntry = typeof activityEntries.$inferSelect;
-export type NewActivityEntry = typeof activityEntries.$inferInsert; 
+export type NewActivityEntry = typeof activityEntries.$inferInsert;
+export type IllnessEntry = typeof illnessEntries.$inferSelect;
+export type NewIllnessEntry = typeof illnessEntries.$inferInsert; 
 

@@ -675,6 +675,28 @@ export interface ActivityEntry {
   created_at: string;
 }
 
+export interface IllnessEntry {
+  id: number;
+  user_id: number;
+  illness_type: 'cold' | 'flu' | 'infection' | 'stomach_bug' | 'fever' | 'other';
+  custom_illness_name?: string | null;
+  status: 'incubating' | 'active' | 'recovering' | 'resolved';
+  symptoms?: string[] | null;
+  severity: number; // 1-10
+  has_fever: boolean;
+  temperature_celsius?: number | null;
+  first_symptoms_at: string;
+  became_sick_at?: string | null;
+  recovered_at?: string | null;
+  mcas_flare_during_illness: boolean;
+  mcas_severity_increase?: number | null;
+  treatments_taken?: string[] | null;
+  suspected_source?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export const medicationsApi = {
   /**
    * Search medications catalog
@@ -781,6 +803,67 @@ export const activitiesApi = {
    */
   deleteActivity: async (id: number): Promise<void> => {
     await api.delete(`/activities/${id}`);
+  },
+};
+
+export const illnessApi = {
+  /**
+   * Log a new illness entry
+   */
+  logIllness: async (data: {
+    illness_type: 'cold' | 'flu' | 'infection' | 'stomach_bug' | 'fever' | 'other';
+    custom_illness_name?: string;
+    status?: 'incubating' | 'active' | 'recovering' | 'resolved';
+    symptoms?: string[];
+    severity: number;
+    has_fever?: boolean;
+    temperature_celsius?: number;
+    first_symptoms_at: string;
+    became_sick_at?: string;
+    recovered_at?: string;
+    mcas_flare_during_illness?: boolean;
+    mcas_severity_increase?: number;
+    treatments_taken?: string[];
+    suspected_source?: string;
+    notes?: string;
+  }): Promise<IllnessEntry> => {
+    const response = await api.post('/illness', data);
+    return response.data.data;
+  },
+
+  /**
+   * Get user's illness history
+   */
+  getIllnessHistory: async (params?: {
+    limit?: number;
+    offset?: number;
+    status?: 'incubating' | 'active' | 'recovering' | 'resolved';
+  }): Promise<IllnessEntry[]> => {
+    const response = await api.get('/illness', { params });
+    return response.data.data;
+  },
+
+  /**
+   * Get a single illness entry
+   */
+  getIllness: async (id: number): Promise<IllnessEntry> => {
+    const response = await api.get(`/illness/${id}`);
+    return response.data.data;
+  },
+
+  /**
+   * Update an illness entry (e.g., change status)
+   */
+  updateIllness: async (id: number, data: Partial<IllnessEntry>): Promise<IllnessEntry> => {
+    const response = await api.patch(`/illness/${id}`, data);
+    return response.data.data;
+  },
+
+  /**
+   * Delete an illness entry
+   */
+  deleteIllness: async (id: number): Promise<void> => {
+    await api.delete(`/illness/${id}`);
   },
 };
 

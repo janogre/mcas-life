@@ -25,6 +25,7 @@ import { airthingsRoutesV2 } from './routes/airthingsV2.js';
 import { settingsRoutes } from './routes/settings.js';
 import medicationRoutes from './routes/medications.js';
 import activityRoutes from './routes/activities.js';
+import illnessRoutes from './routes/illness.js';
 
 // Load environment variables
 dotenv.config();
@@ -115,6 +116,7 @@ app.use('/api/airthings', airthingsRoutesV2); // Airthings indoor air quality in
 app.use('/api/settings', authenticateToken, settingsRoutes); // System settings management
 app.use('/api/medications', medicationRoutes); // Medication tracking with FEST integration
 app.use('/api/activities', activityRoutes); // Activity tracking (temperature, social, physical)
+app.use('/api/illness', illnessRoutes); // Illness tracking with MCAS impact
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -138,7 +140,8 @@ app.get('/', (req, res) => {
       '/api/airthings',
       '/api/settings',
       '/api/medications',
-      '/api/activities'
+      '/api/activities',
+      '/api/illness'
     ]
   });
 });
