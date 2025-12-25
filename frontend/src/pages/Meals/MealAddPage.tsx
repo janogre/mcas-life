@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mealsApi, MealFood } from '../../lib/api';
-import { searchFoods, Food } from '../../lib/api';
+import { mealsApi, MealFood, foodsApi, Food } from '../../lib/api';
 
 interface MealData {
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -63,8 +62,8 @@ export function MealAddPage() {
 
     setIsSearching(true);
     try {
-      const results = await searchFoods({ query, limit: 10 });
-      setSearchResults(results);
+      const response = await foodsApi.search({ query, limit: 10 });
+      setSearchResults(response.foods);
     } catch (error) {
       console.error('Search failed:', error);
     } finally {
