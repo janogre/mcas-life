@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mealsApi, MealFood, foodApi, Food } from '../../lib/api';
+import { mealsApi, MealFood, foodApi, Food, ApprovedFood } from '../../lib/api';
 
 interface MealData {
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -54,8 +54,34 @@ export function MealAddPage() {
   const [searchInAllFoods, setSearchInAllFoods] = useState(false);
   const [selectedFoods, setSelectedFoods] = useState<Array<{ food: Food; amount: string; unit: string }>>([]);
 
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
+  // Cache approved foods to avoid repeated API calls
+  const [approvedFoodsCache, setApprovedFoodsCache] = useState<ApprovedFood[] | null>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load approved foods once when component mounts
+  useEffect(() => {
+    const loadApprovedFoods = async () => {
+      try {
+        const approved = await foodApi.getApproved();
+        setApprovedFoodsCache(approved);
+      } catch (error) {
+        console.error('Failed to load approved foods:', error);
+        setApprovedFoodsCache([]);
+      }
+    };
+    loadApprovedFoods();
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const performSearch = async (query: string) => {
     if (query.length < 2) {
       setSearchResults([]);
       return;
@@ -69,17 +95,19 @@ export function MealAddPage() {
         setSearchResults(response.foods);
       } else {
         // Search only in approved/safe foods
-        // First get all approved foods
-        const approvedFoods = await foodApi.getApproved();
+        if (!approvedFoodsCache) {
+          // Still loading approved foods
+          return;
+        }
 
-        if (approvedFoods.length === 0) {
+        if (approvedFoodsCache.length === 0) {
           // No approved foods yet, show empty results
           setSearchResults([]);
           return;
         }
 
         // Get the food IDs of approved foods
-        const approvedFoodIds = new Set(approvedFoods.map(af => af.food_id));
+        const approvedFoodIds = new Set(approvedFoodsCache.map(af => af.food_id));
 
         // Search in all foods and filter to approved ones
         const response = await foodApi.search({ query, limit: 50 });
@@ -91,9 +119,24 @@ export function MealAddPage() {
       }
     } catch (error) {
       console.error('Search failed:', error);
+      setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Debounce search - wait 300ms after user stops typing
+    searchTimeoutRef.current = setTimeout(() => {
+      performSearch(query);
+    }, 300);
   };
 
   const handleAddFood = (food: Food) => {
@@ -286,9 +329,9 @@ export function MealAddPage() {
                   checked={searchInAllFoods}
                   onChange={(e) => {
                     setSearchInAllFoods(e.target.checked);
-                    // Re-run search if there's a query
+                    // Re-run search immediately if there's a query
                     if (searchQuery.length >= 2) {
-                      handleSearch(searchQuery);
+                      performSearch(searchQuery);
                     }
                   }}
                   className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
