@@ -30,6 +30,7 @@ import { LogPage } from './pages/Log/LogPage';
 import { MedicationAddPage } from './pages/Medications/MedicationAddPage';
 import { ActivityAddPage } from './pages/Activities/ActivityAddPage';
 import { IllnessAddPage } from './pages/Illness/IllnessAddPage';
+import { MealAddPage } from './pages/Meals/MealAddPage';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -211,6 +212,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <IllnessAddPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/meals/add"
+                element={
+                  <ProtectedRoute>
+                    <MealAddPage />
                   </ProtectedRoute>
                 }
               />

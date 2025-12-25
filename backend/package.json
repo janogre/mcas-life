@@ -24,6 +24,8 @@
     "demo:analytics": "tsx src/scripts/analyticsDemo.ts",
     "import:sighi": "tsx src/scripts/importSighiData.ts",
     "import:updated": "tsx src/scripts/importUpdatedSighiData.ts",
+    "import:fest": "tsx src/scripts/importFEST.ts",
+    "seed:medications": "tsx src/scripts/seedMCASmedications.ts",
     "copy:local-to-supabase": "tsx src/scripts/copyFromLocalToSupabase.ts",
     "analyze:question-marks": "tsx src/scripts/analyzeFoodsWithQuestionMarks.ts",
     "migrate:display-names": "tsx src/scripts/addDisplayNamesAndUncertainty.ts",

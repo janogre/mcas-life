@@ -933,32 +933,31 @@ export const mealEntries = pgTable('meal_entries', {
 
   // Meal classification
   meal_type: mealTypeEnum('meal_type').notNull(),
-  meal_name: varchar('meal_name', { length: 255 }), // Optional name like "Pasta carbonara"
 
   // Timing - Critical for MCAS correlation
-  consumed_at: timestamp('consumed_at').notNull(),
+  meal_time: timestamp('meal_time').notNull(),
 
   // DAO supplement tracking (important for MCAS)
   dao_taken_before: boolean('dao_taken_before').notNull().default(false),
+  dao_minutes_before: integer('dao_minutes_before'),
+
+  // Reaction tracking
+  immediate_reaction: boolean('immediate_reaction').notNull().default(false),
+  delayed_reaction: boolean('delayed_reaction').notNull().default(false),
+  reaction_severity: integer('reaction_severity'), // 1-10 scale
+  reaction_notes: text('reaction_notes'),
 
   // Context
   location: varchar('location', { length: 255 }), // e.g., "Hjemme", "Restaurant"
   notes: text('notes'),
 
-  // Immediate reaction tracking
-  immediate_reaction: boolean('immediate_reaction').notNull().default(false),
-  reaction_description: text('reaction_description'),
-
-  // AI-calculated fields (updated by background processes)
-  total_histamine_load: real('total_histamine_load'), // Sum of all foods
-  total_trigger_score: real('total_trigger_score'), // 0-1 combined risk score
-
-  created_at: timestamp('created_at').notNull().defaultNow()
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow()
 }, (table) => ({
   userIdIdx: index('meal_entries_user_id_idx').on(table.user_id),
   mealTypeIdx: index('meal_entries_meal_type_idx').on(table.meal_type),
-  consumedAtIdx: index('meal_entries_consumed_at_idx').on(table.consumed_at),
-  userConsumedIdx: index('meal_entries_user_consumed_idx').on(table.user_id, table.consumed_at)
+  mealTimeIdx: index('meal_entries_meal_time_idx').on(table.meal_time),
+  userTimeIdx: index('meal_entries_user_time_idx').on(table.user_id, table.meal_time)
 }));
 
 // Meal Foods junction table - Links meals to foods with portions
@@ -968,8 +967,9 @@ export const mealFoods = pgTable('meal_foods', {
   food_id: integer('food_id').notNull().references(() => foods.id),
 
   // Portion details
-  amount: real('amount').notNull(), // grams
-  preparation_method: varchar('preparation_method', { length: 100 }), // e.g., "Raw", "Cooked", "Fried"
+  amount: real('amount').notNull(),
+  unit: varchar('unit', { length: 50 }).notNull(), // g, ml, stk, kopp, ss, ts, dl
+  custom_food_name: varchar('custom_food_name', { length: 255 }), // Override food name if needed
 
   created_at: timestamp('created_at').notNull().defaultNow()
 }, (table) => ({

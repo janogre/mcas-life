@@ -867,4 +867,103 @@ export const illnessApi = {
   },
 };
 
+// ============================================================
+// Meal Tracking API
+// ============================================================
+
+export interface MealFood {
+  food_id: number;
+  amount: number;
+  unit: string;
+  custom_food_name?: string;
+}
+
+export interface MealEntry {
+  id: number;
+  user_id: number;
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  meal_time: string;
+  dao_taken_before: boolean;
+  dao_minutes_before?: number;
+  immediate_reaction: boolean;
+  delayed_reaction: boolean;
+  reaction_severity?: number;
+  reaction_notes?: string;
+  location?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MealWithFoods extends MealEntry {
+  foods: Array<{
+    meal_food_id: number;
+    food_id: number;
+    amount: number;
+    unit: string;
+    custom_food_name?: string;
+    food_name?: string;
+    compatibility?: number;
+    category?: string;
+    histamine_level?: number;
+  }>;
+}
+
+export const mealsApi = {
+  /**
+   * Log a new meal with multiple foods
+   */
+  logMeal: async (data: {
+    meal_type: string;
+    foods: MealFood[];
+    meal_time: string;
+    dao_taken_before?: boolean;
+    dao_minutes_before?: number;
+    immediate_reaction?: boolean;
+    delayed_reaction?: boolean;
+    reaction_severity?: number;
+    reaction_notes?: string;
+    location?: string;
+    notes?: string;
+  }): Promise<{ meal: MealEntry; foods: any[] }> => {
+    const response = await api.post('/meals', data);
+    return response.data.data;
+  },
+
+  /**
+   * Get meal history for the authenticated user
+   */
+  getMealHistory: async (params?: {
+    limit?: number;
+    offset?: number;
+    meal_type?: string;
+  }): Promise<MealEntry[]> => {
+    const response = await api.get('/meals', { params });
+    return response.data.data;
+  },
+
+  /**
+   * Get a specific meal with all its foods
+   */
+  getMeal: async (id: number): Promise<MealWithFoods> => {
+    const response = await api.get(`/meals/${id}`);
+    return response.data.data;
+  },
+
+  /**
+   * Update a meal entry (e.g., add reaction information)
+   */
+  updateMeal: async (id: number, data: Partial<MealEntry>): Promise<MealEntry> => {
+    const response = await api.patch(`/meals/${id}`, data);
+    return response.data.data;
+  },
+
+  /**
+   * Delete a meal entry
+   */
+  deleteMeal: async (id: number): Promise<void> => {
+    await api.delete(`/meals/${id}`);
+  },
+};
+
 export default api;

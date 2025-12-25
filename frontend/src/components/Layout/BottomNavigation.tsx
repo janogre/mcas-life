@@ -2,13 +2,10 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home,
-  AlertCircle,
+  PlusCircle,
   Search,
-  Shield,
-  BookOpen,
+  BarChart3,
   User,
-  Wind,
-  ChefHat
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -19,19 +16,19 @@ const navigationItems = [
     icon: Home,
   },
   {
+    name: 'Logg',
+    href: '/log',
+    icon: PlusCircle,
+  },
+  {
     name: 'Mat',
     href: '/food',
     icon: Search,
   },
   {
-    name: 'Symptomer',
-    href: '/symptoms',
-    icon: AlertCircle,
-  },
-  {
-    name: 'Dagbok',
-    href: '/diary',
-    icon: BookOpen,
+    name: 'Analyse',
+    href: '/analytics',
+    icon: BarChart3,
   },
   {
     name: 'Profil',
