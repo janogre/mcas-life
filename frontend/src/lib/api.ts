@@ -621,4 +621,167 @@ export const recipeApi = {
   },
 };
 
+// ==================== MEDICATIONS API ====================
+
+export interface MedicationCatalogItem {
+  id: number;
+  name: string;
+  active_substance: string | null;
+  form: string | null;
+  strength: string | null;
+  prescription_required: boolean;
+}
+
+export interface UserMedication {
+  id: number;
+  catalog_medication_id: number | null;
+  custom_name: string | null;
+  medication_type: 'mcas' | 'prescription' | 'over_counter' | 'supplement';
+  dosage: string | null;
+  dosage_unit: string | null;
+  time_taken: string;
+  notes: string | null;
+  created_at: string;
+  // Joined catalog data
+  catalog_name?: string;
+  catalog_substance?: string;
+  catalog_form?: string;
+  catalog_strength?: string;
+}
+
+export interface ActivityEntry {
+  id: number;
+  user_id: number;
+  activity_type: 'temperature_change' | 'social_trigger' | 'physical_activity';
+  // Temperature change fields
+  temperature_change_type?: 'hot_to_cold' | 'cold_to_hot' | null;
+  temperature_from?: number | null;
+  temperature_to?: number | null;
+  // Social trigger fields
+  social_trigger_type?: string | null;
+  estimated_people_count?: number | null;
+  noise_level?: number | null;
+  // Physical activity fields
+  physical_activity_type?: string | null;
+  intensity?: 'light' | 'moderate' | 'intense' | null;
+  duration_minutes?: number | null;
+  // Common fields
+  time_started: string;
+  time_ended?: string | null;
+  location_description?: string | null;
+  notes?: string | null;
+  immediate_symptoms: boolean;
+  symptom_description?: string | null;
+  created_at: string;
+}
+
+export const medicationsApi = {
+  /**
+   * Search medications catalog
+   */
+  search: async (query: string): Promise<MedicationCatalogItem[]> => {
+    const response = await api.get('/medications/search', {
+      params: { q: query }
+    });
+    return response.data.data;
+  },
+
+  /**
+   * Get single medication from catalog
+   */
+  getCatalogItem: async (id: number): Promise<MedicationCatalogItem> => {
+    const response = await api.get(`/medications/catalog/${id}`);
+    return response.data.data;
+  },
+
+  /**
+   * Log a medication intake
+   */
+  logMedication: async (data: {
+    catalog_medication_id?: number;
+    custom_name?: string;
+    medication_type?: 'mcas' | 'prescription' | 'over_counter' | 'supplement';
+    dosage?: string;
+    dosage_unit?: string;
+    time_taken: string;
+    notes?: string;
+  }): Promise<UserMedication> => {
+    const response = await api.post('/medications', data);
+    return response.data.data;
+  },
+
+  /**
+   * Get user's medication history
+   */
+  getMedicationHistory: async (params?: {
+    from?: string;
+    to?: string;
+    limit?: number;
+  }): Promise<UserMedication[]> => {
+    const response = await api.get('/medications', { params });
+    return response.data.data;
+  },
+
+  /**
+   * Delete a medication entry
+   */
+  deleteMedication: async (id: number): Promise<void> => {
+    await api.delete(`/medications/${id}`);
+  },
+};
+
+export const activitiesApi = {
+  /**
+   * Log a new activity entry
+   */
+  logActivity: async (data: {
+    activity_type: 'temperature_change' | 'social_trigger' | 'physical_activity';
+    temperature_change_type?: 'hot_to_cold' | 'cold_to_hot';
+    temperature_from?: number;
+    temperature_to?: number;
+    social_trigger_type?: string;
+    estimated_people_count?: number;
+    noise_level?: number;
+    physical_activity_type?: string;
+    intensity?: 'light' | 'moderate' | 'intense';
+    duration_minutes?: number;
+    time_started: string;
+    time_ended?: string;
+    location_description?: string;
+    notes?: string;
+    immediate_symptoms?: boolean;
+    symptom_description?: string;
+  }): Promise<ActivityEntry> => {
+    const response = await api.post('/activities', data);
+    return response.data.data;
+  },
+
+  /**
+   * Get user's activity history
+   */
+  getActivityHistory: async (params?: {
+    limit?: number;
+    offset?: number;
+    activity_type?: 'temperature_change' | 'social_trigger' | 'physical_activity';
+  }): Promise<ActivityEntry[]> => {
+    const response = await api.get('/activities', { params });
+    return response.data.data;
+  },
+
+  /**
+   * Get a single activity entry
+   */
+  getActivity: async (id: number): Promise<ActivityEntry> => {
+    const response = await api.get(`/activities/${id}`);
+    return response.data.data;
+  },
+
+  /**
+   * Delete an activity entry
+   */
+  deleteActivity: async (id: number): Promise<void> => {
+    await api.delete(`/activities/${id}`);
+  },
+};
+
 export default api;

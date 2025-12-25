@@ -45,6 +45,10 @@ export const accountStatusEnum = pgEnum('account_status', ['active', 'suspended'
 export const subscriptionTierEnum = pgEnum('subscription_tier', ['free', 'premium', 'professional']);
 export const captureMethodEnum = pgEnum('capture_method', ['quick', 'detailed', 'retrospective']);
 export const enrichmentStatusEnum = pgEnum('enrichment_status', ['minimal', 'partial', 'complete']);
+export const medicationTypeEnum = pgEnum('medication_type', ['mcas', 'prescription', 'over_counter', 'supplement']);
+export const activityTypeEnum = pgEnum('activity_type', ['temperature_change', 'social_trigger', 'physical_activity']);
+export const temperatureChangeEnum = pgEnum('temperature_change_type', ['hot_to_cold', 'cold_to_hot']);
+export const physicalIntensityEnum = pgEnum('physical_intensity', ['light', 'moderate', 'intense']);
 
 // Users table - Core user management
 export const users = pgTable('users', {
@@ -759,6 +763,120 @@ export const savedRecipes = pgTable('saved_recipes', {
   mcasScoreIdx: index('saved_recipes_mcas_score_idx').on(table.mcas_score)
 }));
 
+// Medications Catalog table - FEST (Norwegian medication database)
+export const medicationsCatalog = pgTable('medications_catalog', {
+  id: serial('id').primaryKey(),
+
+  // FEST identifiers
+  fest_id: varchar('fest_id', { length: 100 }).unique(), // Unique ID from FEST
+  varenummer: varchar('varenummer', { length: 20 }), // Norwegian product number
+
+  // Medication details
+  name: varchar('name', { length: 500 }).notNull(), // Full medication name
+  active_substance: varchar('active_substance', { length: 500 }), // Active ingredient(s)
+  atc_code: varchar('atc_code', { length: 20 }), // Anatomical Therapeutic Chemical code
+
+  // Form and strength
+  form: varchar('form', { length: 200 }), // tablet, mixture, injection, etc.
+  strength: varchar('strength', { length: 200 }), // e.g., "10 mg", "5 mg/ml"
+
+  // Manufacturer and prescription
+  manufacturer: varchar('manufacturer', { length: 255 }),
+  prescription_required: boolean('prescription_required').notNull().default(true),
+
+  // Additional metadata
+  approved: boolean('approved').notNull().default(true), // Active/approved in Norway
+  metadata: jsonb('metadata').$type<{
+    package_sizes?: string[];
+    warnings?: string[];
+    indications?: string[];
+    [key: string]: any;
+  }>(),
+
+  // Search optimization
+  search_vector: text('search_vector'), // For full-text search
+
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow()
+}, (table) => ({
+  nameIdx: index('medications_catalog_name_idx').on(table.name),
+  substanceIdx: index('medications_catalog_substance_idx').on(table.active_substance),
+  atcIdx: index('medications_catalog_atc_idx').on(table.atc_code),
+  festIdIdx: uniqueIndex('medications_catalog_fest_id_idx').on(table.fest_id)
+}));
+
+// User Medications table - Track user's medication intake
+export const userMedications = pgTable('user_medications', {
+  id: serial('id').primaryKey(),
+  user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+
+  // Medication reference (can be from catalog or custom)
+  catalog_medication_id: integer('catalog_medication_id').references(() => medicationsCatalog.id),
+  custom_name: varchar('custom_name', { length: 255 }), // If not in catalog
+
+  // Classification
+  medication_type: medicationTypeEnum('medication_type').notNull().default('mcas'),
+
+  // Dosage information
+  dosage: varchar('dosage', { length: 100 }), // e.g., "10"
+  dosage_unit: varchar('dosage_unit', { length: 50 }), // e.g., "mg", "ml", "tabletter"
+
+  // Timing
+  time_taken: timestamp('time_taken').notNull(),
+
+  // Notes
+  notes: text('notes'),
+
+  created_at: timestamp('created_at').notNull().defaultNow()
+}, (table) => ({
+  userIdIdx: index('user_medications_user_id_idx').on(table.user_id),
+  timeTakenIdx: index('user_medications_time_taken_idx').on(table.time_taken),
+  catalogIdIdx: index('user_medications_catalog_id_idx').on(table.catalog_medication_id)
+}));
+
+// Activity Entries table - Track MCAS triggers from activities
+export const activityEntries = pgTable('activity_entries', {
+  id: serial('id').primaryKey(),
+  user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+
+  // Activity type classification
+  activity_type: activityTypeEnum('activity_type').notNull(),
+
+  // Temperature change specific fields
+  temperature_change_type: temperatureChangeEnum('temperature_change_type'),
+  temperature_from: real('temperature_from'), // Celsius
+  temperature_to: real('temperature_to'), // Celsius
+
+  // Social trigger specific fields
+  social_trigger_type: varchar('social_trigger_type', { length: 100 }), // 'crowds', 'noise', 'social_stress', 'sensory_overload'
+  estimated_people_count: integer('estimated_people_count'), // Approximate number of people
+  noise_level: integer('noise_level'), // 1-10 scale
+
+  // Physical activity specific fields
+  physical_activity_type: varchar('physical_activity_type', { length: 100 }), // 'walking', 'running', 'cycling', 'household', etc.
+  intensity: physicalIntensityEnum('intensity'),
+  duration_minutes: integer('duration_minutes'),
+
+  // Common fields for all activities
+  time_started: timestamp('time_started').notNull(),
+  time_ended: timestamp('time_ended'),
+
+  // Location context
+  location_description: varchar('location_description', { length: 255 }), // e.g., "Kjøpesenter", "Ute på tur"
+
+  // Notes and reactions
+  notes: text('notes'),
+  immediate_symptoms: boolean('immediate_symptoms').notNull().default(false),
+  symptom_description: text('symptom_description'),
+
+  created_at: timestamp('created_at').notNull().defaultNow()
+}, (table) => ({
+  userIdIdx: index('activity_entries_user_id_idx').on(table.user_id),
+  activityTypeIdx: index('activity_entries_activity_type_idx').on(table.activity_type),
+  timeStartedIdx: index('activity_entries_time_started_idx').on(table.time_started),
+  userTimeIdx: index('activity_entries_user_time_idx').on(table.user_id, table.time_started)
+}));
+
 // Note: Zod validation schemas will be added when drizzle-zod compatibility is resolved
 
 // Export all table types for use in services
@@ -773,5 +891,11 @@ export type NewSymptomTemplate = typeof symptomTemplates.$inferInsert;
 export type SymptomEntry = typeof symptomEntries.$inferSelect;
 export type NewSymptomEntry = typeof symptomEntries.$inferInsert;
 export type SavedRecipe = typeof savedRecipes.$inferSelect;
-export type NewSavedRecipe = typeof savedRecipes.$inferInsert; 
+export type NewSavedRecipe = typeof savedRecipes.$inferInsert;
+export type MedicationCatalog = typeof medicationsCatalog.$inferSelect;
+export type NewMedicationCatalog = typeof medicationsCatalog.$inferInsert;
+export type UserMedication = typeof userMedications.$inferSelect;
+export type NewUserMedication = typeof userMedications.$inferInsert;
+export type ActivityEntry = typeof activityEntries.$inferSelect;
+export type NewActivityEntry = typeof activityEntries.$inferInsert; 
 

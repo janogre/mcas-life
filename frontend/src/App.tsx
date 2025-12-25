@@ -26,6 +26,9 @@ import { AnalyticsPage } from './pages/Analytics/AnalyticsPage';
 import { ProfilePage } from './pages/Profile/ProfilePage';
 import { DiaryPage } from './pages/Diary/DiaryPage';
 import { IndoorClimatePage } from './pages/Environment/IndoorClimatePage';
+import { LogPage } from './pages/Log/LogPage';
+import { MedicationAddPage } from './pages/Medications/MedicationAddPage';
+import { ActivityAddPage } from './pages/Activities/ActivityAddPage';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -173,6 +176,32 @@ function App() {
                     <Layout>
                       <IndoorClimatePage />
                     </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/log"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <LogPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/medications/add"
+                element={
+                  <ProtectedRoute>
+                    <MedicationAddPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/activities/add"
+                element={
+                  <ProtectedRoute>
+                    <ActivityAddPage />
                   </ProtectedRoute>
                 }
               />

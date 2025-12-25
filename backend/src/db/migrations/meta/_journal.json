@@ -43,6 +43,20 @@
       "when": 1759414688400,
       "tag": "0005_chunky_silverclaw",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1766654201066,
+      "tag": "0006_cheerful_jack_flag",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1766661159233,
+      "tag": "0007_massive_martin_li",
+      "breakpoints": true
     }
   ]
 }
