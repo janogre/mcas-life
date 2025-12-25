@@ -51,6 +51,7 @@ export const temperatureChangeEnum = pgEnum('temperature_change_type', ['hot_to_
 export const physicalIntensityEnum = pgEnum('physical_intensity', ['light', 'moderate', 'intense']);
 export const illnessTypeEnum = pgEnum('illness_type', ['cold', 'flu', 'infection', 'stomach_bug', 'fever', 'other']);
 export const illnessStatusEnum = pgEnum('illness_status', ['incubating', 'active', 'recovering', 'resolved']);
+export const mealTypeEnum = pgEnum('meal_type', ['breakfast', 'lunch', 'dinner', 'snack', 'other']);
 
 // Users table - Core user management
 export const users = pgTable('users', {
@@ -925,6 +926,57 @@ export const illnessEntries = pgTable('illness_entries', {
   userTimeIdx: index('illness_entries_user_time_idx').on(table.user_id, table.first_symptoms_at)
 }));
 
+// Meal Entries table - Track complete meals with multiple foods
+export const mealEntries = pgTable('meal_entries', {
+  id: serial('id').primaryKey(),
+  user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+
+  // Meal classification
+  meal_type: mealTypeEnum('meal_type').notNull(),
+  meal_name: varchar('meal_name', { length: 255 }), // Optional name like "Pasta carbonara"
+
+  // Timing - Critical for MCAS correlation
+  consumed_at: timestamp('consumed_at').notNull(),
+
+  // DAO supplement tracking (important for MCAS)
+  dao_taken_before: boolean('dao_taken_before').notNull().default(false),
+
+  // Context
+  location: varchar('location', { length: 255 }), // e.g., "Hjemme", "Restaurant"
+  notes: text('notes'),
+
+  // Immediate reaction tracking
+  immediate_reaction: boolean('immediate_reaction').notNull().default(false),
+  reaction_description: text('reaction_description'),
+
+  // AI-calculated fields (updated by background processes)
+  total_histamine_load: real('total_histamine_load'), // Sum of all foods
+  total_trigger_score: real('total_trigger_score'), // 0-1 combined risk score
+
+  created_at: timestamp('created_at').notNull().defaultNow()
+}, (table) => ({
+  userIdIdx: index('meal_entries_user_id_idx').on(table.user_id),
+  mealTypeIdx: index('meal_entries_meal_type_idx').on(table.meal_type),
+  consumedAtIdx: index('meal_entries_consumed_at_idx').on(table.consumed_at),
+  userConsumedIdx: index('meal_entries_user_consumed_idx').on(table.user_id, table.consumed_at)
+}));
+
+// Meal Foods junction table - Links meals to foods with portions
+export const mealFoods = pgTable('meal_foods', {
+  id: serial('id').primaryKey(),
+  meal_id: integer('meal_id').notNull().references(() => mealEntries.id, { onDelete: 'cascade' }),
+  food_id: integer('food_id').notNull().references(() => foods.id),
+
+  // Portion details
+  amount: real('amount').notNull(), // grams
+  preparation_method: varchar('preparation_method', { length: 100 }), // e.g., "Raw", "Cooked", "Fried"
+
+  created_at: timestamp('created_at').notNull().defaultNow()
+}, (table) => ({
+  mealIdIdx: index('meal_foods_meal_id_idx').on(table.meal_id),
+  foodIdIdx: index('meal_foods_food_id_idx').on(table.food_id)
+}));
+
 // Note: Zod validation schemas will be added when drizzle-zod compatibility is resolved
 
 // Export all table types for use in services
@@ -947,5 +999,9 @@ export type NewUserMedication = typeof userMedications.$inferInsert;
 export type ActivityEntry = typeof activityEntries.$inferSelect;
 export type NewActivityEntry = typeof activityEntries.$inferInsert;
 export type IllnessEntry = typeof illnessEntries.$inferSelect;
-export type NewIllnessEntry = typeof illnessEntries.$inferInsert; 
+export type NewIllnessEntry = typeof illnessEntries.$inferInsert;
+export type MealEntry = typeof mealEntries.$inferSelect;
+export type NewMealEntry = typeof mealEntries.$inferInsert;
+export type MealFood = typeof mealFoods.$inferSelect;
+export type NewMealFood = typeof mealFoods.$inferInsert; 
 
