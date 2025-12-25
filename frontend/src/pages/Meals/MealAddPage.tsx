@@ -51,6 +51,7 @@ export function MealAddPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Food[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchInAllFoods, setSearchInAllFoods] = useState(false);
   const [selectedFoods, setSelectedFoods] = useState<Array<{ food: Food; amount: string; unit: string }>>([]);
 
   const handleSearch = async (query: string) => {
@@ -62,8 +63,32 @@ export function MealAddPage() {
 
     setIsSearching(true);
     try {
-      const response = await foodApi.search({ query, limit: 10 });
-      setSearchResults(response.foods);
+      if (searchInAllFoods) {
+        // Search in entire SIGHI database
+        const response = await foodApi.search({ query, limit: 20 });
+        setSearchResults(response.foods);
+      } else {
+        // Search only in approved/safe foods
+        // First get all approved foods
+        const approvedFoods = await foodApi.getApproved();
+
+        if (approvedFoods.length === 0) {
+          // No approved foods yet, show empty results
+          setSearchResults([]);
+          return;
+        }
+
+        // Get the food IDs of approved foods
+        const approvedFoodIds = new Set(approvedFoods.map(af => af.food_id));
+
+        // Search in all foods and filter to approved ones
+        const response = await foodApi.search({ query, limit: 50 });
+        const matchingFoods = response.foods.filter(food =>
+          food.id && approvedFoodIds.has(food.id)
+        );
+
+        setSearchResults(matchingFoods.slice(0, 20));
+      }
     } catch (error) {
       console.error('Search failed:', error);
     } finally {
@@ -238,20 +263,51 @@ export function MealAddPage() {
             <h2 className="text-lg font-semibold mb-4">Legg til matvarer</h2>
 
             {/* Search */}
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                placeholder="Søk etter matvare..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              {isSearching && (
-                <div className="absolute right-3 top-3">
-                  <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full" />
-                </div>
-              )}
+            <div className="space-y-3">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  placeholder={searchInAllFoods ? "Søk i hele databasen..." : "Søk i trygge matvarer..."}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                {isSearching && (
+                  <div className="absolute right-3 top-3">
+                    <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full" />
+                  </div>
+                )}
+              </div>
+
+              {/* Toggle for searching in all foods */}
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={searchInAllFoods}
+                  onChange={(e) => {
+                    setSearchInAllFoods(e.target.checked);
+                    // Re-run search if there's a query
+                    if (searchQuery.length >= 2) {
+                      handleSearch(searchQuery);
+                    }
+                  }}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Søk i hele SIGHI-databasen (ikke bare trygge matvarer)</span>
+              </label>
             </div>
+
+            {/* No results message */}
+            {searchQuery.length >= 2 && !isSearching && searchResults.length === 0 && !searchInAllFoods && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
+                <p className="text-blue-800 mb-2">
+                  Ingen trygge matvarer funnet for "{searchQuery}".
+                </p>
+                <p className="text-blue-600">
+                  Huk av "Søk i hele SIGHI-databasen" for å søke i alle matvarer, eller legg til matvarer i din liste over trygge matvarer først.
+                </p>
+              </div>
+            )}
 
             {/* Search results */}
             {searchResults.length > 0 && (
