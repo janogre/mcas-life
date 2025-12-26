@@ -7,11 +7,33 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { analyticsService } from './analyticsService.js';
+import { openaiAnalyticsService } from './openaiAnalyticsService.js';
 import { authenticate, requireRole } from '../../middleware/auth.js';
 import { validateRequest } from '../../middleware/validation.js';
 import { rateLimitConfig } from '../../middleware/rateLimiting.js';
+import { db } from '../../db/index.js';
+import { userPreferences } from '../../db/schema.js';
+import { eq } from 'drizzle-orm';
 
 const router = Router();
+
+/**
+ * Helper function to get user's analysis mode preference
+ */
+async function getUserAnalysisMode(userId: number): Promise<'smart' | 'ai'> {
+  try {
+    const [prefs] = await db
+      .select()
+      .from(userPreferences)
+      .where(eq(userPreferences.user_id, userId))
+      .limit(1);
+
+    return prefs?.analysis_mode || 'smart'; // Default to smart mode
+  } catch (error) {
+    console.warn(`Failed to get analysis mode for user ${userId}, defaulting to smart mode`, error);
+    return 'smart';
+  }
+}
 
 // Validation schemas
 const triggerAnalysisSchema = z.object({
@@ -46,11 +68,11 @@ const userAnalysesQuerySchema = z.object({
 
 /**
  * POST /api/analytics/trigger-correlation
- * 
+ *
  * Analyze food triggers for a specific symptom episode
- * This is the core AI correlation feature
+ * Automatically selects Smart analysis or AI analysis based on user preference
  */
-router.post('/trigger-correlation', 
+router.post('/trigger-correlation',
   authenticate,
   rateLimitConfig.analytics.trigger_analysis, // 5 requests per 15 minutes
   validateRequest(triggerAnalysisSchema),
@@ -58,22 +80,32 @@ router.post('/trigger-correlation',
     try {
       const userId = req.user!.userId;
       const { symptom_entry_id, analysis_window_hours } = req.body;
-      
-      console.log(`🔍 Starting trigger correlation analysis for user ${userId}, symptom ${symptom_entry_id}`);
-      
-      // Perform AI correlation analysis
-      const analysis = await analyticsService.analyzeTriggerCorrelation({
+
+      // Get user's analysis mode preference
+      const analysisMode = await getUserAnalysisMode(userId);
+
+      console.log(`🔍 Starting ${analysisMode.toUpperCase()} trigger correlation analysis for user ${userId}, symptom ${symptom_entry_id}`);
+
+      // Select appropriate analysis service based on user preference
+      const service = analysisMode === 'ai' ? openaiAnalyticsService : analyticsService;
+      const modeName = analysisMode === 'ai' ? 'AI-analyse (OpenAI)' : 'Smart analyse';
+
+      // Perform correlation analysis
+      const analysis = await service.analyzeTriggerCorrelation({
         user_id: userId,
         symptom_entry_id,
         analysis_window_hours
       });
-      
+
       res.status(200).json({
         success: true,
-        data: analysis,
-        message: `Analysis complete. Found ${analysis.likely_food_triggers.length} potential triggers with ${(analysis.analysis_confidence * 100).toFixed(1)}% confidence.`
+        data: {
+          ...analysis,
+          analysis_mode: analysisMode, // Include which mode was used
+        },
+        message: `${modeName} complete. Found ${analysis.likely_food_triggers.length} potential triggers with ${(analysis.analysis_confidence * 100).toFixed(1)}% confidence.`
       });
-      
+
     } catch (error) {
       console.error('Trigger correlation analysis failed:', error);
       next(error);

@@ -167,11 +167,17 @@ export const mcasProfiles = pgTable('mcas_profiles', {
   severityIdx: index('mcas_profiles_severity_idx').on(table.severity)
 }));
 
+// Analysis mode enum - Smart (rule-based) vs AI (OpenAI)
+export const analysisModeEnum = pgEnum('analysis_mode', ['smart', 'ai']);
+
 // User preferences for notifications and privacy
 export const userPreferences = pgTable('user_preferences', {
   id: serial('id').primaryKey(),
   user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  
+
+  // Analysis preferences
+  analysis_mode: analysisModeEnum('analysis_mode').notNull().default('smart'),
+
   // Notification preferences
   notification_preferences: jsonb('notification_preferences').$type<{
     supplement_reminders: boolean;
@@ -185,7 +191,7 @@ export const userPreferences = pgTable('user_preferences', {
     email_notifications: boolean;
     sms_notifications: boolean;
   }>().notNull(),
-  
+
   // Privacy settings
   privacy_settings: jsonb('privacy_settings').$type<{
     share_anonymous_data: boolean;
@@ -197,7 +203,7 @@ export const userPreferences = pgTable('user_preferences', {
     auto_delete_old_data: boolean;
     data_retention_months: number;
   }>().notNull(),
-  
+
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow()
 }, (table) => ({

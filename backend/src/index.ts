@@ -27,6 +27,7 @@ import medicationRoutes from './routes/medications.js';
 import activityRoutes from './routes/activities.js';
 import illnessRoutes from './routes/illness.js';
 import mealRoutes from './routes/meals.js';
+import { preferencesRoutes } from './routes/preferences.js';
 
 // Load environment variables
 dotenv.config();
@@ -119,6 +120,7 @@ app.use('/api/medications', medicationRoutes); // Medication tracking with FEST 
 app.use('/api/activities', activityRoutes); // Activity tracking (temperature, social, physical)
 app.use('/api/illness', illnessRoutes); // Illness tracking with MCAS impact
 app.use('/api/meals', mealRoutes); // Meal tracking with food correlation
+app.use('/api/preferences', authenticateToken, preferencesRoutes); // User preferences including analysis mode
 
 // Root endpoint
 app.get('/', (req, res) => {

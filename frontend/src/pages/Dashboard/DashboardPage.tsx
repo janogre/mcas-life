@@ -10,7 +10,12 @@ import {
   Calendar,
   BarChart3,
   Sparkles,
-  ArrowUpRight
+  ArrowUpRight,
+  Utensils,
+  Pill,
+  ArrowRight,
+  Target,
+  Lightbulb
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDate } from '../../lib/utils';
@@ -276,6 +281,293 @@ export function DashboardPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* How It Works - Workflow Diagram */}
+      <div style={{
+        background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+        borderRadius: 'var(--radius-gentle)',
+        padding: '2.5rem',
+        border: '2px solid #86efac',
+      }}>
+        <div className="text-center mb-6">
+          <h2 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '1.75rem',
+            fontWeight: 600,
+            color: '#166534',
+            marginBottom: '0.5rem',
+            letterSpacing: '-0.01em',
+          }}>
+            Hvordan MCAS-Life fungerer
+          </h2>
+          <p style={{
+            fontSize: '1rem',
+            color: '#15803d',
+            fontWeight: 400,
+          }}>
+            Fra daglig registrering til personlige innsikter
+          </p>
+        </div>
+
+        {/* Workflow Steps */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Step 1: Data Collection */}
+          <div className="flex flex-col items-center">
+            <div style={{
+              width: '80px',
+              height: '80px',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '1rem',
+              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+            }}>
+              <Calendar style={{ width: '36px', height: '36px', color: 'white' }} />
+            </div>
+            <h3 style={{
+              fontSize: '1.1rem',
+              fontWeight: 600,
+              color: '#166534',
+              marginBottom: '0.5rem',
+              textAlign: 'center',
+            }}>
+              1. Samle inn data
+            </h3>
+            <p style={{
+              fontSize: '0.9rem',
+              color: '#15803d',
+              textAlign: 'center',
+              marginBottom: '1rem',
+            }}>
+              Registrer daglig hva du spiser, symptomer, medisiner og aktiviteter
+            </p>
+            <div className="flex flex-col gap-2 w-full">
+              <div className="flex items-center gap-2 bg-white/60 rounded-lg px-3 py-2">
+                <Utensils className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-800">Måltider og aktiviteter</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/60 rounded-lg px-3 py-2">
+                <AlertCircle className="w-4 h-4 text-red-600" />
+                <span className="text-sm text-green-800">Symptomer</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/60 rounded-lg px-3 py-2">
+                <Pill className="w-4 h-4 text-purple-600" />
+                <span className="text-sm text-green-800">Medisiner og kosttilskudd</span>
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div className="hidden md:block absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2">
+              <ArrowRight className="w-8 h-8 text-green-600" />
+            </div>
+          </div>
+
+          {/* Step 2: Track Over Time */}
+          <div className="flex flex-col items-center relative">
+            <div style={{
+              width: '80px',
+              height: '80px',
+              background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '1rem',
+              boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+            }}>
+              <BarChart3 style={{ width: '36px', height: '36px', color: 'white' }} />
+            </div>
+            <h3 style={{
+              fontSize: '1.1rem',
+              fontWeight: 600,
+              color: '#166534',
+              marginBottom: '0.5rem',
+              textAlign: 'center',
+            }}>
+              2. Spor over tid
+            </h3>
+            <p style={{
+              fontSize: '0.9rem',
+              color: '#15803d',
+              textAlign: 'center',
+              marginBottom: '1rem',
+            }}>
+              Se mønstre og sammenhenger i dagboken din
+            </p>
+            <div className="flex flex-col gap-2 w-full">
+              <div className="bg-white/60 rounded-lg px-3 py-2 text-center">
+                <span className="text-sm font-medium text-green-800">Dag-visning</span>
+              </div>
+              <div className="bg-white/60 rounded-lg px-3 py-2 text-center">
+                <span className="text-sm font-medium text-green-800">Uke-visning</span>
+              </div>
+              <div className="bg-white/60 rounded-lg px-3 py-2 text-center">
+                <span className="text-sm font-medium text-green-800">Måned-visning</span>
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div className="hidden md:block absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2">
+              <ArrowRight className="w-8 h-8 text-green-600" />
+            </div>
+          </div>
+
+          {/* Step 3: AI Analysis */}
+          <div className="flex flex-col items-center relative">
+            <div style={{
+              width: '80px',
+              height: '80px',
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '1rem',
+              boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
+            }}>
+              <Brain style={{ width: '36px', height: '36px', color: 'white' }} />
+            </div>
+            <h3 style={{
+              fontSize: '1.1rem',
+              fontWeight: 600,
+              color: '#166534',
+              marginBottom: '0.5rem',
+              textAlign: 'center',
+            }}>
+              3. AI-analyse
+            </h3>
+            <p style={{
+              fontSize: '0.9rem',
+              color: '#15803d',
+              textAlign: 'center',
+              marginBottom: '1rem',
+            }}>
+              AI finner sammenhenger mellom mat og symptomer
+            </p>
+            <div className="flex flex-col gap-2 w-full">
+              <div className="bg-white/60 rounded-lg px-3 py-2 text-center">
+                <span className="text-sm font-medium text-green-800">72-timers vindu</span>
+              </div>
+              <div className="bg-white/60 rounded-lg px-3 py-2 text-center">
+                <span className="text-sm font-medium text-green-800">8-faktor korrelasjon</span>
+              </div>
+              <div className="bg-white/60 rounded-lg px-3 py-2 text-center">
+                <span className="text-sm font-medium text-green-800">Trigger-score</span>
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div className="hidden md:block absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2">
+              <ArrowRight className="w-8 h-8 text-green-600" />
+            </div>
+          </div>
+
+          {/* Step 4: Get Insights */}
+          <div className="flex flex-col items-center">
+            <div style={{
+              width: '80px',
+              height: '80px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '1rem',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+            }}>
+              <Lightbulb style={{ width: '36px', height: '36px', color: 'white' }} />
+            </div>
+            <h3 style={{
+              fontSize: '1.1rem',
+              fontWeight: 600,
+              color: '#166534',
+              marginBottom: '0.5rem',
+              textAlign: 'center',
+            }}>
+              4. Få innsikt
+            </h3>
+            <p style={{
+              fontSize: '0.9rem',
+              color: '#15803d',
+              textAlign: 'center',
+              marginBottom: '1rem',
+            }}>
+              Personlige anbefalinger for bedre helse
+            </p>
+            <div className="flex flex-col gap-2 w-full">
+              <div className="flex items-center gap-2 bg-white/60 rounded-lg px-3 py-2">
+                <Target className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-800">Identifiserte triggere</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/60 rounded-lg px-3 py-2">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-800">Trender over tid</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/60 rounded-lg px-3 py-2">
+                <Sparkles className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-800">Personlige tips</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Call to Action */}
+        <div className="mt-8 text-center">
+          <p style={{
+            fontSize: '1rem',
+            color: '#166534',
+            fontWeight: 500,
+            marginBottom: '1rem',
+          }}>
+            Jo mer du registrerer, jo bedre blir analysene!
+          </p>
+          <div className="flex justify-center gap-3">
+            <button
+              onClick={() => window.location.href = '/log'}
+              style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: 'white',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '0.5rem',
+                fontWeight: 600,
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                transition: 'transform 0.2s ease',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              Start registrering
+            </button>
+            <button
+              onClick={() => window.location.href = '/symptoms'}
+              style={{
+                background: 'white',
+                color: '#059669',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '0.5rem',
+                fontWeight: 600,
+                border: '2px solid #10b981',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#f0fdf4';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'white';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              Se mine analyser
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Quick Actions - Elevated interactive buttons */}

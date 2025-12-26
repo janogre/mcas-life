@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { User, Settings, Shield, Bell, Download, LogOut, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Settings, Shield, Bell, Download, LogOut, MapPin, Brain, Sparkles } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { LocationSelector } from '../../components/Settings/LocationSelector';
 import { AirthingsAdmin } from '../../components/Settings/AirthingsAdmin';
@@ -8,6 +8,8 @@ import api from '../../lib/api';
 export function ProfilePage() {
   const { user, logout } = useAuth();
   const [showLocationSelector, setShowLocationSelector] = useState(false);
+  const [analysisMode, setAnalysisMode] = useState<'smart' | 'ai'>('smart');
+  const [loadingAnalysisMode, setLoadingAnalysisMode] = useState(true);
   const [currentLocation, setCurrentLocation] = useState({
     city: user?.city || undefined,
     latitude: user?.latitude ? parseFloat(user.latitude) : undefined,
@@ -15,11 +17,42 @@ export function ProfilePage() {
     country: user?.country || undefined
   });
 
+  // Load user's analysis mode preference on mount
+  useEffect(() => {
+    const loadAnalysisMode = async () => {
+      try {
+        const response = await api.get('/preferences/analysis-mode');
+        setAnalysisMode(response.data.analysis_mode || 'smart');
+      } catch (error) {
+        console.error('Error loading analysis mode:', error);
+      } finally {
+        setLoadingAnalysisMode(false);
+      }
+    };
+
+    loadAnalysisMode();
+  }, []);
+
   const handleLogout = async () => {
     try {
       await logout();
     } catch (error) {
       console.error('Logout error:', error);
+    }
+  };
+
+  const handleAnalysisModeChange = async (mode: 'smart' | 'ai') => {
+    try {
+      await api.put('/preferences/analysis-mode', {
+        analysis_mode: mode,
+      });
+
+      setAnalysisMode(mode);
+      console.log(`Analysis mode changed to: ${mode}`);
+    } catch (error) {
+      console.error('Error saving analysis mode:', error);
+      // Revert on error
+      setAnalysisMode(analysisMode);
     }
   };
 
@@ -152,6 +185,104 @@ export function ProfilePage() {
             />
           )}
         </div>
+      </div>
+
+      {/* Analysis Settings */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <Brain className="w-5 h-5 mr-2" />
+          Analyse-innstillinger
+        </h3>
+
+        {loadingAnalysisMode ? (
+          <div className="text-center py-4 text-gray-500">Laster...</div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Velg hvilken analysemetode som skal brukes når du kjører trigger-analyser på symptomer.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Smart Analysis Option */}
+              <button
+                onClick={() => handleAnalysisModeChange('smart')}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  analysisMode === 'smart'
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    analysisMode === 'smart' ? 'bg-green-100' : 'bg-gray-100'
+                  }`}>
+                    <Sparkles className={`w-5 h-5 ${
+                      analysisMode === 'smart' ? 'text-green-600' : 'text-gray-600'
+                    }`} />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h4 className={`font-semibold mb-1 ${
+                      analysisMode === 'smart' ? 'text-green-900' : 'text-gray-900'
+                    }`}>
+                      Smart analyse
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Regelbasert algoritme med 8-faktor korrelasjon. Rask og gratis.
+                    </p>
+                    {analysisMode === 'smart' && (
+                      <div className="mt-2 text-xs font-medium text-green-600">
+                        ✓ Aktivert
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </button>
+
+              {/* AI Analysis Option */}
+              <button
+                onClick={() => handleAnalysisModeChange('ai')}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  analysisMode === 'ai'
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    analysisMode === 'ai' ? 'bg-purple-100' : 'bg-gray-100'
+                  }`}>
+                    <Brain className={`w-5 h-5 ${
+                      analysisMode === 'ai' ? 'text-purple-600' : 'text-gray-600'
+                    }`} />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h4 className={`font-semibold mb-1 ${
+                      analysisMode === 'ai' ? 'text-purple-900' : 'text-gray-900'
+                    }`}>
+                      AI-analyse (OpenAI)
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Avansert AI-drevet analyse med GPT-4. Mer nyansert og kontekstbevisst.
+                    </p>
+                    {analysisMode === 'ai' && (
+                      <div className="mt-2 text-xs font-medium text-purple-600">
+                        ✓ Aktivert
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                <strong>Tips:</strong> Smart analyse er rask og pålitelig for de fleste brukere.
+                AI-analyse gir mer detaljerte forklaringer og kan finne subtile mønstre,
+                men krever OpenAI API-nøkkel.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Quick Settings */}
