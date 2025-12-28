@@ -5,7 +5,7 @@
 
 import { db } from '../../db/connection.js';
 import { symptomEntries, symptomTemplates, healthMetrics, foods } from '../../db/schema.js';
-import { eq, and, desc, sql, inArray, gte } from 'drizzle-orm';
+import { eq, and, desc, sql, inArray, gte, lte } from 'drizzle-orm';
 import type { NewSymptomEntry, SymptomEntry } from '../../db/schema.js';
 
 export interface ExtendedSymptomInput {
@@ -43,7 +43,22 @@ export interface ExtendedSymptomInput {
   sleep_quality_last_night?: number; // 1-10
   reactions_in_last_24h?: number;
   cumulative_day_stress?: number; // 1-10
-  
+
+  // Weather data (from frontend)
+  weather_data?: {
+    temperature: number;
+    humidity: number;
+    pressure: number;
+    weather_code: number;
+  };
+
+  // Room exposures (Airthings integration)
+  room_exposures?: Array<{
+    room_id: string;
+    room_name: string;
+    time_spent_minutes?: number;
+  }>;
+
   // Treatment
   treatment_taken?: string;
   treatment_effective?: boolean;
@@ -55,10 +70,14 @@ export class SymptomService {
    * Log a new symptom with comprehensive context
    */
   static async logSymptom(userId: number, symptomData: ExtendedSymptomInput): Promise<SymptomEntry> {
+    // Debug logging
+    console.log('📥 Received symptomData.room_exposures:', symptomData.room_exposures);
+    console.log('📥 Received symptomData.weather_data:', symptomData.weather_data);
+
     // Get today's health context to enhance correlation
     const today = new Date().toISOString().split('T')[0];
     const todaysContext = await this.getTodaysHealthContext(userId, today);
-    
+
     // Count recent reactions for context
     const recentReactionsCount = await this.getReactionCount24h(userId, symptomData.started_at);
 
@@ -87,12 +106,20 @@ export class SymptomService {
       time_since_last_meal_minutes: symptomData.time_since_last_meal_minutes,
       had_heavy_food_today: symptomData.had_heavy_food_today,
       current_stress_factors: symptomData.current_stress_factors,
-      weather_conditions: symptomData.weather_conditions,
+      // Support both weather_conditions (old) and weather_data (new from frontend)
+      weather_conditions: symptomData.weather_data ? {
+        temperature: symptomData.weather_data.temperature,
+        humidity: symptomData.weather_data.humidity,
+        pressure: symptomData.weather_data.pressure,
+        weather_type: `code_${symptomData.weather_data.weather_code}`
+      } : symptomData.weather_conditions,
+      // Store room exposures with air quality snapshots in indoor_air_quality field
+      indoor_air_quality: await this.enrichRoomExposuresWithAirQuality(symptomData.room_exposures),
       menstrual_cycle_phase: symptomData.menstrual_cycle_phase,
       sleep_quality_last_night: symptomData.sleep_quality_last_night,
       reactions_in_last_24h: recentReactionsCount,
       cumulative_day_stress: symptomData.cumulative_day_stress,
-      
+
       // Treatment
       treatment_taken: symptomData.treatment_taken,
       treatment_effective: symptomData.treatment_effective,
@@ -192,12 +219,127 @@ export class SymptomService {
       query = query.where(
         and(
           eq(symptomEntries.user_id, userId),
-          sql`${symptomEntries.started_at} BETWEEN ${startDate} AND ${endDate}`
+          gte(symptomEntries.started_at, new Date(startDate)),
+          lte(symptomEntries.started_at, new Date(endDate))
         )
       );
     }
 
-    return await query.limit(limit);
+    const symptoms = await query.limit(limit);
+
+    // Transform to frontend format
+    return symptoms.map(symptom => this.transformSymptomForFrontend(symptom));
+  }
+
+  /**
+   * Enrich room exposures with current air quality snapshots
+   * Fetches air quality data from Airthings when symptom is registered
+   */
+  private static async enrichRoomExposuresWithAirQuality(
+    room_exposures?: Array<{ room_id: string; room_name: string; time_spent_minutes?: number }>
+  ): Promise<any> {
+    if (!room_exposures || room_exposures.length === 0) {
+      return undefined;
+    }
+
+    try {
+      // Dynamic import to avoid circular dependency
+      const { airthingsIntegrationService } = await import('./airthingsIntegrationService.js');
+
+      const enrichedRooms = [];
+
+      for (const room of room_exposures) {
+        try {
+          console.log(`📸 Capturing air quality snapshot for ${room.room_name}...`);
+
+          // Get current air quality data (snapshot at registration time)
+          const airQualityData = await airthingsIntegrationService.getRoomAirQualityHistory(
+            room.room_id,
+            new Date(), // symptom time (now)
+            room.time_spent_minutes
+          );
+
+          if (airQualityData && airQualityData.length > 0) {
+            const snapshot = airQualityData[0];
+            console.log(`✅ Air quality snapshot captured: CO₂=${snapshot.metrics.co2}, VOC=${snapshot.metrics.voc}`);
+
+            enrichedRooms.push({
+              room_id: room.room_id,
+              room_name: room.room_name,
+              time_spent_minutes: room.time_spent_minutes,
+              air_quality_snapshot: {
+                captured_at: snapshot.timestamp.toISOString(),
+                co2: snapshot.metrics.co2,
+                voc: snapshot.metrics.voc,
+                humidity: snapshot.metrics.humidity,
+                temperature: snapshot.metrics.temperature,
+                radon: snapshot.metrics.radon,
+                pm25: snapshot.metrics.pm25,
+                pressure: snapshot.metrics.pressure,
+              },
+            });
+          } else {
+            // No air quality data available, store room info only
+            enrichedRooms.push({
+              room_id: room.room_id,
+              room_name: room.room_name,
+              time_spent_minutes: room.time_spent_minutes,
+            });
+          }
+        } catch (error) {
+          console.error(`Failed to fetch air quality for room ${room.room_name}:`, error);
+          // Store room info even if air quality fetch fails
+          enrichedRooms.push({
+            room_id: room.room_id,
+            room_name: room.room_name,
+            time_spent_minutes: room.time_spent_minutes,
+          });
+        }
+      }
+
+      return {
+        room_name: room_exposures.map(r => r.room_name).join(', '),
+        rooms: enrichedRooms,
+      };
+    } catch (error) {
+      console.error('Failed to enrich room exposures with air quality:', error);
+      // Fallback to basic room data
+      return {
+        room_name: room_exposures.map(r => r.room_name).join(', '),
+        rooms: room_exposures,
+      };
+    }
+  }
+
+  /**
+   * Transform symptom from database format to frontend format
+   */
+  private static transformSymptomForFrontend(symptom: any): any {
+    // Transform indoor_air_quality.rooms to room_exposures for frontend
+    // JSONB fields are stored in camelCase by PostgreSQL, so we need to convert them
+    let roomExposures: any[] = [];
+    if (symptom.indoor_air_quality?.rooms) {
+      roomExposures = symptom.indoor_air_quality.rooms.map((room: any) => ({
+        room_id: room.roomId || room.room_id,
+        room_name: room.roomName || room.room_name,
+        time_spent_minutes: room.timeSpentMinutes || room.time_spent_minutes
+      }));
+    }
+
+    return {
+      ...symptom,
+      // Transform weather_conditions to weather_data for frontend
+      weather_data: symptom.weather_conditions ? {
+        temperature: symptom.weather_conditions.temperature,
+        humidity: symptom.weather_conditions.humidity,
+        pressure: symptom.weather_conditions.pressure,
+        weather_code: symptom.weather_conditions.weather_type?.replace('code_', '')
+          ? parseInt(symptom.weather_conditions.weather_type.replace('code_', ''))
+          : 0
+      } : undefined,
+      // Add the transformed room exposures
+      room_exposures: roomExposures
+    };
   }
 
   /**

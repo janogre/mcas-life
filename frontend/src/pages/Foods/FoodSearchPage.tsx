@@ -6,6 +6,7 @@ import { foodApi, diaryApi, personalRatingApi } from '../../lib/api';
 import { LoadingSpinner, SectionLoading } from '../../components/UI/LoadingSpinner';
 import { ErrorDisplay, NetworkError } from '../../components/UI/ErrorDisplay';
 import { useToast } from '../../components/UI/Toast';
+import { ColorLegend } from '../../components/UI/ColorLegend';
 import type { Food, FoodSearchRequest, ApprovedFood, PersonalFoodRating, SighiTrigger, TRIGGER_DISPLAY } from '../../types/shared';
 import { TRIGGER_DISPLAY as TRIGGER_INFO } from '../../types/shared';
 
@@ -451,15 +452,14 @@ export function FoodSearchPage() {
                 const newTrigger = filters.triggers === triggerCode ? undefined : triggerCode as SighiTrigger;
                 handleFilterChange({ ...filters, triggers: newTrigger });
               }}
-              className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors text-left ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors text-left ${
                 filters.triggers === triggerCode
                   ? `${info.bgColor} ${info.color} border-current`
                   : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
               }`}
-              title={info.description}
+              title={`${info.name} (${triggerCode}): ${info.description}`}
             >
               <div className="font-medium">{info.name}</div>
-              <div className="text-gray-500 text-xs">({triggerCode})</div>
             </button>
           ))}
         </div>
@@ -554,6 +554,9 @@ export function FoodSearchPage() {
 
       {/* Filters */}
       {showFilters && <FilterPanel />}
+
+      {/* Color Legend - Always visible to help users understand the rating system */}
+      <ColorLegend type="compatibility" compact={false} showTitle={true} />
 
       {/* Search Results */}
       <div>

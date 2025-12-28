@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Pill, Clock, Scale, FileText, Check, Loader2 } from 'lucide-react';
 import { FormStep, ProgressiveFormContainer } from '../../components/Forms/ProgressiveForm';
-import { medicationsApi, type MedicationCatalogItem } from '../../lib/api';
+import { medicationsApi, diaryApi, type MedicationCatalogItem } from '../../lib/api';
 
 interface MedicationData {
   catalogMedicationId?: number;
@@ -116,21 +116,39 @@ export function MedicationAddPage() {
 
   const handleSubmit = async () => {
     try {
-      await medicationsApi.logMedication({
-        catalog_medication_id: medicationData.catalogMedicationId,
-        custom_name: medicationData.catalogMedicationId ? undefined : medicationData.name,
-        medication_type: medicationData.type,
-        dosage: medicationData.dosage,
-        dosage_unit: medicationData.dosageUnit,
-        time_taken: medicationData.timeTaken!.toISOString(),
-        notes: notes || undefined,
-      });
+      // If it's a supplement, save to diary API instead
+      if (medicationData.type === 'supplement') {
+        await diaryApi.createEntry({
+          type: 'supplement',
+          timestamp: medicationData.timeTaken!.toISOString(),
+          data: {
+            name: medicationData.name,
+            type: 'other', // Could be expanded to map to specific types
+            dosage_amount: parseFloat(medicationData.dosage || '1'),
+            dosage_unit: medicationData.dosageUnit || 'stk',
+            frequency: 'as_needed', // Default to as needed
+            notes: notes || undefined,
+          },
+        });
+      } else {
+        // Save medications (not supplements) to medications API
+        await medicationsApi.logMedication({
+          catalog_medication_id: medicationData.catalogMedicationId,
+          custom_name: medicationData.catalogMedicationId ? undefined : medicationData.name,
+          medication_type: medicationData.type,
+          dosage: medicationData.dosage,
+          dosage_unit: medicationData.dosageUnit,
+          time_taken: medicationData.timeTaken!.toISOString(),
+          notes: notes || undefined,
+        });
+      }
 
       // Show success and navigate
-      navigate('/log', { state: { message: 'Medisin lagret!' } });
+      const message = medicationData.type === 'supplement' ? 'Kosttilskudd lagret!' : 'Medisin lagret!';
+      navigate('/diary', { state: { message } });
     } catch (error) {
       console.error('Error saving medication:', error);
-      alert('Kunne ikke lagre medisin. Prøv igjen.');
+      alert('Kunne ikke lagre. Prøv igjen.');
     }
   };
 
@@ -140,7 +158,7 @@ export function MedicationAddPage() {
     <ProgressiveFormContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
-      onClose={() => navigate('/log')}
+      onClose={() => navigate('/diary')}
       title="Registrer medisin"
     >
       {/* Step 0: Select medication */}

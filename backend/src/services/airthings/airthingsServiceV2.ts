@@ -73,7 +73,7 @@ class AirthingsServiceV2 {
           grant_type: 'client_credentials',
           client_id: credentials.clientId,
           client_secret: credentials.clientSecret,
-          scope: 'read:device:current_values',
+          scope: 'read:device:current_values', // Client Credentials only supports current values (not historical)
         }),
         {
           headers: {
@@ -107,7 +107,9 @@ class AirthingsServiceV2 {
         },
       });
 
-      return response.data.devices || [];
+      const devices = response.data.devices || [];
+      console.log('🏠 Airthings devices:', JSON.stringify(devices, null, 2));
+      return devices;
     } catch (error: any) {
       console.error('Failed to fetch Airthings devices:', error.response?.data || error.message);
       throw new Error('Failed to fetch devices from Airthings');
@@ -134,6 +136,65 @@ class AirthingsServiceV2 {
     } catch (error: any) {
       console.error(`Failed to fetch data for device ${deviceId}:`, error.response?.data || error.message);
       throw new Error('Failed to fetch sensor data from Airthings');
+    }
+  }
+
+  /**
+   * Get historical sensor samples for a specific device
+   *
+   * @param deviceId - Device serial number
+   * @param startTime - Start of time period (ISO 8601 datetime or Unix timestamp)
+   * @param endTime - End of time period (ISO 8601 datetime or Unix timestamp)
+   * @param resolution - Data resolution: 'HOUR', 'DAY', 'WEEK' (optional)
+   * @returns Array of historical sensor data samples
+   */
+  async getDeviceHistoricalSamples(
+    deviceId: string,
+    startTime: Date,
+    endTime: Date,
+    resolution?: 'HOUR' | 'DAY' | 'WEEK'
+  ): Promise<AirthingsSensorData[]> {
+    const token = await this.getAccessToken();
+
+    try {
+      // Build query parameters
+      const params: Record<string, string> = {
+        start: startTime.toISOString(),
+        end: endTime.toISOString(),
+      };
+
+      if (resolution) {
+        params.resolution = resolution;
+      }
+
+      const response = await axios.get(
+        `${AIRTHINGS_API_BASE}/devices/${deviceId}/samples`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          params,
+        }
+      );
+
+      // The response format may vary - handle both array and data wrapper
+      if (Array.isArray(response.data)) {
+        return response.data;
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data;
+      } else {
+        console.warn('Unexpected response format from Airthings samples endpoint:', response.data);
+        return [];
+      }
+    } catch (error: any) {
+      console.error(`Failed to fetch historical samples for device ${deviceId}:`, error.response?.data || error.message);
+      // If historical endpoint is not available, fall back to latest-samples
+      if (error.response?.status === 404 || error.response?.status === 403) {
+        console.warn('Historical samples endpoint not available, falling back to latest-samples');
+        const latestData = await this.getDeviceSensorData(deviceId);
+        return [latestData];
+      }
+      throw new Error('Failed to fetch historical sensor data from Airthings');
     }
   }
 

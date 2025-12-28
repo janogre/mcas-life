@@ -54,7 +54,7 @@ export const rateLimitConfig = {
     // User data access (moderate usage)
     user_data: rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 30, // 30 requests per window
+      max: 500, // 500 requests per window (increased for development)
       message: {
         success: false,
         error: 'Too many data requests, please try again later'

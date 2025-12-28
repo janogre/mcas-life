@@ -25,7 +25,10 @@
       "Bash(netstat:*)",
       "Bash(git push:*)",
       "Bash(git commit:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(timeout 5 bash:*)",
+      "Bash(timeout:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": [],

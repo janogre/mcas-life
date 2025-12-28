@@ -18,10 +18,16 @@ import { AirthingsCallbackPage } from './pages/Auth/AirthingsCallbackPage';
 import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { SymptomLogPage } from './pages/Symptoms/SymptomLogPage';
 import { SymptomRegistrationPage } from './pages/Symptoms/SymptomRegistrationPage';
+import { SymptomAddPage } from './pages/Symptoms/SymptomAddPage';
+import { SymptomDetailPage } from './pages/Symptoms/SymptomDetailPage';
 import { FoodSearchPage } from './pages/Foods/FoodSearchPage';
 import { ApprovedFoodsPage } from './pages/Foods/ApprovedFoodsPage';
 import { RecipeSearchPage } from './pages/Recipes/RecipeSearchPage';
 import { SavedRecipesPage } from './pages/Recipes/SavedRecipesPage';
+import { UserRecipesPage } from './pages/Recipes/UserRecipesPage';
+import { RecipeCreatePage } from './pages/Recipes/RecipeCreatePage';
+import { RecipeEditPage } from './pages/Recipes/RecipeEditPage';
+import { RecipeDetailPage } from './pages/Recipes/RecipeDetailPage';
 import { AnalyticsPage } from './pages/Analytics/AnalyticsPage';
 import { ProfilePage } from './pages/Profile/ProfilePage';
 import { DiaryPage } from './pages/Diary/DiaryPage';
@@ -44,6 +50,30 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  React.useEffect(() => {
+    // Listen for session expired events from API
+    const handleSessionExpired = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const message = customEvent.detail?.message || 'Din økt har utløpt';
+
+      // Show a modal/alert to user
+      const confirmed = confirm(
+        `${message}\n\nDu vil bli sendt til innloggingssiden.`
+      );
+
+      if (confirmed) {
+        // User acknowledged, speed up the redirect
+        window.location.href = '/login?session_expired=true';
+      }
+    };
+
+    window.addEventListener('session-expired', handleSessionExpired);
+
+    return () => {
+      window.removeEventListener('session-expired', handleSessionExpired);
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
@@ -102,6 +132,26 @@ function App() {
                 }
               />
               <Route
+                path="/symptoms/add"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <SymptomAddPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/symptoms/:id"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <SymptomDetailPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/food"
                 element={
                   <ProtectedRoute>
@@ -137,6 +187,46 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <SavedRecipesPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/mine-oppskrifter"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <UserRecipesPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/mine-oppskrifter/ny"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <RecipeCreatePage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/mine-oppskrifter/:id/rediger"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <RecipeEditPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/mine-oppskrifter/:id"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <RecipeDetailPage />
                     </Layout>
                   </ProtectedRoute>
                 }

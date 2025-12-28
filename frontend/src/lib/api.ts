@@ -11,7 +11,12 @@ import type {
   RecipeSearchRequest,
   RecipeSearchResponse,
   SavedRecipe,
-  SpoonacularRecipeDetails
+  SpoonacularRecipeDetails,
+  UserRecipe,
+  CreateRecipeInput,
+  UpdateRecipeInput,
+  RecipePortionCalculation,
+  LogMealFromRecipeInput
 } from '../types/shared';
 
 // API client configuration - Use environment variable
@@ -33,6 +38,26 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Function to show session expired notification and redirect
+const handleSessionExpired = (message: string = 'Din økt har utløpt. Vennligst logg inn på nytt.') => {
+  console.warn('🔐 Session expired:', message);
+
+  // Clear auth data
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('refreshToken');
+
+  // Show notification to user
+  const event = new CustomEvent('session-expired', {
+    detail: { message }
+  });
+  window.dispatchEvent(event);
+
+  // Redirect to login after a short delay to allow user to see the message
+  setTimeout(() => {
+    window.location.href = '/login?session_expired=true';
+  }, 1500);
+};
 
 // Response interceptor for error handling and token refresh
 api.interceptors.response.use(
@@ -68,15 +93,13 @@ api.interceptors.response.use(
         } catch (refreshError) {
           console.error('🔄 Token refresh failed:', refreshError);
           // Refresh failed, redirect to login
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('refreshToken');
-          window.location.href = '/login';
+          handleSessionExpired('Din økt har utløpt. Vennligst logg inn på nytt.');
+          return Promise.reject(refreshError);
         }
       } else {
         // No refresh token, redirect to login
-        console.warn('🔐 No refresh token available, redirecting to login');
-        localStorage.removeItem('authToken');
-        window.location.href = '/login';
+        handleSessionExpired('Du er logget ut. Vennligst logg inn på nytt.');
+        return Promise.reject(error);
       }
     }
     return Promise.reject(error);
@@ -196,13 +219,19 @@ export const foodApi = {
     return response.data.data;
   },
 
+  getBatch: async (food_ids: number[]): Promise<Food[]> => {
+    const response = await api.post('/foods/batch', { food_ids });
+    return response.data.data;
+  },
+
   getByCompatibility: async (level: 0 | 1 | 2 | 3): Promise<Food[]> => {
     const response = await api.get(`/foods/compatibility/${level}`);
     return response.data.data;
   },
 
-  getApproved: async (): Promise<ApprovedFood[]> => {
-    const response = await api.get('/foods/approved');
+  getApproved: async (includeDetails: boolean = false): Promise<ApprovedFood[]> => {
+    const params = includeDetails ? { include_details: 'true' } : {};
+    const response = await api.get('/foods/approved', { params });
     return response.data.data;
   },
 
@@ -359,6 +388,7 @@ export const analyticsApi = {
   analyzeTriggerCorrelation: async (request: {
     symptom_entry_id: number;
     analysis_window_hours?: number;
+    analysis_mode?: 'smart' | 'ai';
   }): Promise<TriggerAnalysisResult> => {
     const response = await api.post('/analytics/trigger-correlation', request);
     return response.data.data;
@@ -369,6 +399,13 @@ export const analyticsApi = {
     confidence_threshold?: number;
   }) => {
     const response = await api.get('/analytics/user-analyses', { params });
+    return response.data.data;
+  },
+
+  getInsights: async (params?: {
+    days?: number;
+  }) => {
+    const response = await api.get('/analytics/insights', { params });
     return response.data.data;
   },
 
@@ -533,14 +570,49 @@ export const diaryApi = {
     return response.data.data;
   },
 
-  deleteEntry: async (id: string) => {
-    const response = await api.delete(`/diary/entries/${id}`);
+  updateEntry: async (id: string, entry: {
+    type: 'meal' | 'symptom' | 'supplement' | 'activity' | 'health_metric';
+    timestamp?: string;
+    data: any;
+  }) => {
+    const response = await api.put(`/diary/entries/${id}`, entry);
+    return response.data;
+  },
+
+  deleteEntry: async (id: string, type?: string) => {
+    const params = type ? { type } : {};
+    const response = await api.delete(`/diary/entries/${id}`, { params });
     return response.data;
   },
 
   getStatistics: async () => {
     const response = await api.get('/diary/statistics');
     return response.data.data;
+  },
+
+  /**
+   * Log a meal from a user recipe with automatic portion calculation
+   */
+  logMealFromRecipe: async (data: LogMealFromRecipeInput): Promise<{
+    success: boolean;
+    message: string;
+    data: {
+      meal: {
+        id: number;
+        user_id: number;
+        meal_type: string;
+        meal_time: Date;
+        recipe_title: string;
+        foods: Array<{
+          food_id: number;
+          amount: number;
+          unit: string;
+        }>;
+      };
+    };
+  }> => {
+    const response = await api.post('/diary/meal-from-recipe', data);
+    return response.data;
   },
 };
 
@@ -963,6 +1035,73 @@ export const mealsApi = {
    */
   deleteMeal: async (id: number): Promise<void> => {
     await api.delete(`/meals/${id}`);
+  },
+};
+
+// ============================================================
+// User Recipes API - Custom user-created recipes
+// ============================================================
+
+export const userRecipesApi = {
+  /**
+   * Get all user recipes with optional sorting
+   */
+  getAll: async (params?: {
+    sortBy?: 'created_at' | 'times_made' | 'mcas_score';
+    order?: 'asc' | 'desc';
+  }): Promise<{ recipes: UserRecipe[]; count: number }> => {
+    const response = await api.get('/user-recipes', { params });
+    return response.data;
+  },
+
+  /**
+   * Get a single recipe by ID
+   */
+  getById: async (id: number): Promise<UserRecipe> => {
+    const response = await api.get(`/user-recipes/${id}`);
+    return response.data.recipe;
+  },
+
+  /**
+   * Create a new user recipe with automatic MCAS calculation
+   */
+  create: async (data: CreateRecipeInput): Promise<{ message: string; recipe: UserRecipe }> => {
+    const response = await api.post('/user-recipes', data);
+    return response.data;
+  },
+
+  /**
+   * Update an existing recipe (recalculates MCAS if ingredients change)
+   */
+  update: async (id: number, data: UpdateRecipeInput): Promise<{ message: string; recipe: UserRecipe }> => {
+    const response = await api.put(`/user-recipes/${id}`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete a recipe
+   */
+  delete: async (id: number): Promise<{ message: string }> => {
+    const response = await api.delete(`/user-recipes/${id}`);
+    return response.data;
+  },
+
+  /**
+   * Calculate portion ingredients (preview before logging meal)
+   */
+  calculatePortions: async (id: number, portionsConsumed: number): Promise<RecipePortionCalculation> => {
+    const response = await api.post(`/user-recipes/${id}/calculate-portions`, {
+      portions_consumed: portionsConsumed
+    });
+    return response.data;
+  },
+
+  /**
+   * Increment times_made counter
+   */
+  incrementTimesMade: async (id: number): Promise<{ message: string }> => {
+    const response = await api.post(`/user-recipes/${id}/increment-made`);
+    return response.data;
   },
 };
 

@@ -70,6 +70,13 @@ export const RoomExposureSelector: React.FC<RoomExposureSelectorProps> = ({ onCo
       setTimeEstimates(newEstimates);
     } else {
       newSelected.add(roomId);
+      // Set default time when room is first selected
+      if (!timeEstimates[roomId]) {
+        setTimeEstimates(prev => ({
+          ...prev,
+          [roomId]: 30,
+        }));
+      }
     }
     setSelectedRooms(newSelected);
   };

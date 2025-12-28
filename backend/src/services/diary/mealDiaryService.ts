@@ -4,9 +4,10 @@
  */
 
 import { db } from '../../db/connection.js';
-import { foodDiaryEntries, foods } from '../../db/schema.js';
+import { foodDiaryEntries, foods, mealEntries, mealFoods, userRecipes } from '../../db/schema.js';
 import { eq, and, desc, sql, gte, lte, between } from 'drizzle-orm';
 import type { NewFoodDiaryEntry, FoodDiaryEntry } from '../../db/schema.js';
+import { userRecipeService } from '../food/userRecipeService.js';
 
 export interface MealEntryInput {
   food_id: number;
@@ -14,6 +15,16 @@ export interface MealEntryInput {
   preparation_method?: string;
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   consumed_at: Date;
+  notes?: string;
+}
+
+export interface RecipeMealInput {
+  recipe_id: number;
+  portions_consumed: number;
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'evening';
+  meal_time: Date;
+  dao_taken_before?: boolean;
+  dao_minutes_before?: number;
   notes?: string;
 }
 
@@ -56,56 +67,92 @@ export class MealDiaryService {
   ): Promise<FoodDiaryEntry[]> {
     const { startDate, endDate, mealType, limit = 50, offset = 0 } = options;
 
-    let query = db
-      .select({
-        meal: foodDiaryEntries,
-        food: foods
-      })
-      .from(foodDiaryEntries)
-      .leftJoin(foods, eq(foodDiaryEntries.food_id, foods.id))
-      .where(eq(foodDiaryEntries.user_id, userId))
-      .orderBy(desc(foodDiaryEntries.consumed_at))
-      .limit(limit)
-      .offset(offset);
-
-    // Apply filters
-    const conditions = [eq(foodDiaryEntries.user_id, userId)];
+    // Build conditions
+    const conditions = [eq(mealEntries.user_id, userId)];
 
     if (startDate && endDate) {
       conditions.push(
-        between(foodDiaryEntries.consumed_at, startDate, endDate)
+        between(mealEntries.meal_time, startDate, endDate)
       );
     } else if (startDate) {
-      conditions.push(gte(foodDiaryEntries.consumed_at, startDate));
+      conditions.push(gte(mealEntries.meal_time, startDate));
     } else if (endDate) {
-      conditions.push(lte(foodDiaryEntries.consumed_at, endDate));
+      conditions.push(lte(mealEntries.meal_time, endDate));
     }
 
     if (mealType) {
-      conditions.push(eq(foodDiaryEntries.meal_type, mealType));
+      conditions.push(eq(mealEntries.meal_type, mealType));
     }
 
-    if (conditions.length > 1) {
-      query = db
-        .select({
-          meal: foodDiaryEntries,
-          food: foods
-        })
-        .from(foodDiaryEntries)
-        .leftJoin(foods, eq(foodDiaryEntries.food_id, foods.id))
-        .where(and(...conditions))
-        .orderBy(desc(foodDiaryEntries.consumed_at))
-        .limit(limit)
-        .offset(offset);
-    }
+    // Query new meal_entries + meal_foods + foods tables
+    const results = await db
+      .select({
+        meal_id: mealEntries.id,
+        meal_time: mealEntries.meal_time,
+        meal_type: mealEntries.meal_type,
+        dao_taken_before: mealEntries.dao_taken_before,
+        dao_minutes_before: mealEntries.dao_minutes_before,
+        immediate_reaction: mealEntries.immediate_reaction,
+        delayed_reaction: mealEntries.delayed_reaction,
+        reaction_severity: mealEntries.reaction_severity,
+        reaction_notes: mealEntries.reaction_notes,
+        location: mealEntries.location,
+        notes: mealEntries.notes,
+        created_at: mealEntries.created_at,
+        // Food details from meal_foods join
+        meal_food_id: mealFoods.id,
+        food_id: mealFoods.food_id,
+        amount: mealFoods.amount,
+        unit: mealFoods.unit,
+        custom_food_name: mealFoods.custom_food_name,
+        // SIGHI food data
+        food: foods
+      })
+      .from(mealEntries)
+      .innerJoin(mealFoods, eq(mealFoods.meal_id, mealEntries.id))
+      .leftJoin(foods, eq(mealFoods.food_id, foods.id))
+      .where(and(...conditions))
+      .orderBy(desc(mealEntries.meal_time))
+      .limit(limit)
+      .offset(offset);
 
-    const results = await query;
+    // Group by meal_id and aggregate foods into arrays
+    const mealsMap = new Map<number, any>();
 
-    // Flatten the results to include food data with meal entry
-    return results.map(r => ({
-      ...r.meal,
-      food: r.food
-    })) as any;
+    results.forEach(row => {
+      if (!mealsMap.has(row.meal_id)) {
+        mealsMap.set(row.meal_id, {
+          id: row.meal_id,
+          user_id: userId,
+          meal_type: row.meal_type,
+          consumed_at: row.meal_time,
+          dao_taken_before: row.dao_taken_before,
+          dao_minutes_before: row.dao_minutes_before,
+          immediate_reaction: row.immediate_reaction,
+          delayed_reaction: row.delayed_reaction,
+          reaction_severity: row.reaction_severity,
+          reaction_notes: row.reaction_notes,
+          location: row.location,
+          notes: row.notes,
+          created_at: row.created_at,
+          foods: []
+        });
+      }
+
+      // Add food to the meal's foods array
+      const meal = mealsMap.get(row.meal_id);
+      meal.foods.push({
+        meal_food_id: row.meal_food_id,
+        food_id: row.food_id,
+        amount: row.amount,
+        unit: row.unit,
+        custom_food_name: row.custom_food_name,
+        food: row.food
+      });
+    });
+
+    // Convert map to array and return
+    return Array.from(mealsMap.values()) as any;
   }
 
   /**
@@ -282,6 +329,92 @@ export class MealDiaryService {
       ...r.meal,
       food: r.food
     })) as any;
+  }
+
+  /**
+   * Log a meal from a user recipe with automatic portion calculation
+   *
+   * This method:
+   * 1. Retrieves the recipe from user_recipes table
+   * 2. Calculates ingredient amounts based on portions consumed
+   * 3. Creates a meal entry with all calculated ingredients
+   * 4. Increments the recipe's times_made counter
+   *
+   * @param userId - ID of the user
+   * @param mealData - Recipe meal input data
+   * @returns The created meal entry with all foods
+   */
+  static async logMealFromRecipe(
+    userId: number,
+    mealData: RecipeMealInput
+  ): Promise<any> {
+    // 1. Get recipe and verify ownership
+    const recipe = await userRecipeService.getRecipeById(userId, mealData.recipe_id);
+    if (!recipe) {
+      throw new Error('Recipe not found');
+    }
+
+    // 2. Calculate ingredient amounts for portions consumed
+    const portionIngredients = userRecipeService.calculatePortionIngredients(
+      recipe,
+      mealData.portions_consumed
+    );
+
+    // 3. Create meal entry
+    const [mealEntry] = await db
+      .insert(mealEntries)
+      .values({
+        user_id: userId,
+        meal_type: mealData.meal_type,
+        meal_time: mealData.meal_time,
+        dao_taken_before: mealData.dao_taken_before || false,
+        dao_minutes_before: mealData.dao_minutes_before,
+        notes: mealData.notes
+          ? `Fra oppskrift: ${recipe.title} (${mealData.portions_consumed} porsjoner)\n${mealData.notes}`
+          : `Fra oppskrift: ${recipe.title} (${mealData.portions_consumed} porsjoner)`
+      })
+      .returning();
+
+    // 4. Insert all calculated ingredients as meal_foods
+    const mealFoodEntries = portionIngredients.map(ingredient => ({
+      meal_id: mealEntry.id,
+      food_id: ingredient.food_id,
+      amount: ingredient.amount,
+      unit: ingredient.unit,
+      custom_food_name: ingredient.custom_name
+    }));
+
+    await db.insert(mealFoods).values(mealFoodEntries);
+
+    // 5. Increment recipe's times_made counter
+    await userRecipeService.incrementTimesMade(userId, mealData.recipe_id);
+
+    // 6. Return the complete meal entry with foods
+    const result = await db
+      .select({
+        meal: mealEntries,
+        meal_food: mealFoods,
+        food: foods
+      })
+      .from(mealEntries)
+      .innerJoin(mealFoods, eq(mealFoods.meal_id, mealEntry.id))
+      .leftJoin(foods, eq(mealFoods.food_id, foods.id))
+      .where(eq(mealEntries.id, mealEntry.id));
+
+    // Format response with grouped foods
+    return {
+      ...mealEntry,
+      recipe_title: recipe.title,
+      portions_consumed: mealData.portions_consumed,
+      total_servings: recipe.servings,
+      foods: result.map(r => ({
+        food_id: r.meal_food.food_id,
+        amount: r.meal_food.amount,
+        unit: r.meal_food.unit,
+        custom_food_name: r.meal_food.custom_food_name,
+        food: r.food
+      }))
+    };
   }
 
   /**

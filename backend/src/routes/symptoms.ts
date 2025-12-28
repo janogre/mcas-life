@@ -54,6 +54,21 @@ const extendedSymptomSchema = z.object({
   treatment_taken: z.string().optional(),
   treatment_effective: z.boolean().optional(),
   notes: z.string().optional(),
+
+  // Weather data (frontend sends this as weather_data)
+  weather_data: z.object({
+    temperature: z.number(),
+    humidity: z.number().int().min(0).max(100),
+    pressure: z.number(),
+    weather_code: z.number()
+  }).optional(),
+
+  // Room exposures (Airthings integration)
+  room_exposures: z.array(z.object({
+    room_id: z.string(),
+    room_name: z.string(),
+    time_spent_minutes: z.number().int().min(0).optional()
+  })).optional(),
 });
 
 const quickSymptomSchema = z.object({

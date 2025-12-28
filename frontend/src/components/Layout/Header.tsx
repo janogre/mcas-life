@@ -90,6 +90,13 @@ export function Header() {
                       <ChefHat className="w-4 h-4" />
                       <span>Oppskrifter</span>
                     </Link>
+                    <Link
+                      to="/mine-oppskrifter"
+                      className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      <span>Mine Oppskrifter</span>
+                    </Link>
                   </div>
                 </div>
               )}
@@ -111,7 +118,7 @@ export function Header() {
               to="/analytics"
               className="text-gray-600 hover:text-primary-600 font-medium transition-colors"
             >
-              AI Analyse
+              Innsikt & analyser
             </Link>
           </nav>
 
@@ -237,7 +244,7 @@ export function Header() {
                 className="px-4 py-2 text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors"
                 onClick={() => setShowMobileMenu(false)}
               >
-                AI Analyse
+                Innsikt & analyser
               </Link>
             </nav>
           </div>

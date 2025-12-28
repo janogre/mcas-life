@@ -6,6 +6,9 @@ import { ValidationError, NotFoundError } from '../middleware/errorHandler.js';
 import { MealDiaryService } from '../services/diary/mealDiaryService.js';
 import { SupplementDiaryService } from '../services/diary/supplementDiaryService.js';
 import { SymptomService } from '../services/symptoms/symptomService.js';
+import { db } from '../db/index.js';
+import { activityEntries, healthMetrics, userMedications, medicationsCatalog, illnessEntries } from '../db/schema.js';
+import { eq, and, gte, lte, desc } from 'drizzle-orm';
 
 const router = express.Router();
 
@@ -69,10 +72,41 @@ const symptomEntrySchema = z.object({
   })
 });
 
+const activityEntrySchema = z.object({
+  type: z.literal('activity'),
+  timestamp: z.string().datetime().optional(),
+  data: z.object({
+    activity_type: z.enum(['temperature_change', 'social_trigger', 'physical_activity']),
+    duration_minutes: z.number().optional(),
+    intensity: z.enum(['light', 'moderate', 'intense']).optional(),
+    location_description: z.string().optional(),
+    notes: z.string().optional(),
+    temperature_change_type: z.enum(['hot_to_cold', 'cold_to_hot']).optional(),
+    temperature_from: z.number().optional(),
+    temperature_to: z.number().optional(),
+    social_event_type: z.string().optional(),
+    crowd_size: z.string().optional()
+  })
+});
+
+const healthMetricEntrySchema = z.object({
+  type: z.literal('health_metric'),
+  timestamp: z.string().datetime().optional(),
+  data: z.object({
+    sleep_quality: z.number().min(1).max(10).optional(),
+    energy_level: z.number().min(1).max(10).optional(),
+    stress_level: z.number().min(1).max(10).optional(),
+    mood_rating: z.number().min(1).max(10).optional(),
+    notes: z.string().optional()
+  })
+});
+
 const diaryEntrySchema = z.discriminatedUnion('type', [
   mealEntrySchema,
   supplementEntrySchema,
-  symptomEntrySchema
+  symptomEntrySchema,
+  activityEntrySchema,
+  healthMetricEntrySchema
 ]);
 
 // GET /api/diary/entries - Get user's diary entries
@@ -119,20 +153,26 @@ router.get('/entries', diaryRateLimit, async (req: AuthenticatedRequest, res, ne
         type: 'meal',
         timestamp: m.consumed_at,
         createdAt: m.created_at,
-        updatedAt: m.updated_at,
+        updatedAt: (m as any).updated_at,
         data: {
           meal_type: m.meal_type,
           meal_time: m.consumed_at ? new Date(m.consumed_at).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' }) : undefined,
-          foods: [{
-            sighi_id: m.food_id,
-            name: (m as any).food?.name_en || (m as any).food?.name_no || 'Unknown',
-            amount: m.amount?.toString() || '',
-            unit: 'g'
-          }],
-          preparation_method: m.preparation_method,
-          notes: m.notes,
-          estimated_histamine_load: m.estimated_histamine_load,
-          trigger_score: m.trigger_score
+          foods: (m as any).foods?.map((f: any) => ({
+            sighi_id: f.food_id,
+            name: f.custom_food_name || f.food?.name_no || f.food?.name_en || 'Unknown',
+            amount: f.amount?.toString() || '',
+            unit: f.unit || 'g',
+            compatibility: f.food?.compatibility,
+            triggers: f.food?.triggers
+          })) || [],
+          dao_taken_before: (m as any).dao_taken_before,
+          dao_minutes_before: (m as any).dao_minutes_before,
+          immediate_reaction: (m as any).immediate_reaction,
+          delayed_reaction: (m as any).delayed_reaction,
+          reaction_severity: (m as any).reaction_severity,
+          reaction_notes: (m as any).reaction_notes,
+          location: (m as any).location,
+          notes: m.notes
         }
       })));
     }
@@ -166,9 +206,9 @@ router.get('/entries', diaryRateLimit, async (req: AuthenticatedRequest, res, ne
 
     if (type === 'symptom' || !type) {
       const symptoms = await SymptomService.getSymptomHistory(userId, {
-        startDate: startDateObj?.toISOString().split('T')[0],
-        endDate: endDateObj?.toISOString().split('T')[0],
-        limit: type === 'symptom' ? limitNum : 20
+        startDate: startDateObj?.toISOString(),
+        endDate: endDateObj?.toISOString(),
+        limit: type === 'symptom' ? limitNum : 100
       });
       entries.push(...symptoms.map(s => ({
         id: s.id,
@@ -188,13 +228,172 @@ router.get('/entries', diaryRateLimit, async (req: AuthenticatedRequest, res, ne
       })));
     }
 
+    // Fetch medications (user_medications table)
+    if (type === 'medication' || !type) {
+      const medications = await db
+        .select({
+          medication: userMedications,
+          catalog: medicationsCatalog
+        })
+        .from(userMedications)
+        .leftJoin(medicationsCatalog, eq(userMedications.catalog_medication_id, medicationsCatalog.id))
+        .where(
+          and(
+            eq(userMedications.user_id, userId),
+            startDateObj ? gte(userMedications.time_taken, startDateObj) : undefined,
+            endDateObj ? lte(userMedications.time_taken, endDateObj) : undefined
+          )
+        )
+        .orderBy(desc(userMedications.time_taken))
+        .limit(type === 'medication' ? limitNum : 50);
+
+      entries.push(...medications.map(m => ({
+        id: m.medication.id,
+        userId: m.medication.user_id,
+        type: 'medication',
+        timestamp: m.medication.time_taken,
+        createdAt: m.medication.created_at,
+        updatedAt: m.medication.created_at, // user_medications doesn't have updated_at
+        data: {
+          medication_name: m.medication.custom_name || m.catalog?.name || 'Ukjent medisin',
+          medication_type: m.medication.medication_type,
+          dosage: m.medication.dosage,
+          dosage_unit: m.medication.dosage_unit,
+          catalog_info: m.catalog ? {
+            active_substance: m.catalog.active_substance,
+            form: m.catalog.form,
+            strength: m.catalog.strength,
+            prescription_required: m.catalog.prescription_required
+          } : undefined,
+          notes: m.medication.notes
+        }
+      })));
+    }
+
+    // Fetch activity entries
+    if (type === 'activity' || !type) {
+      const activities = await db
+        .select()
+        .from(activityEntries)
+        .where(
+          and(
+            eq(activityEntries.user_id, userId),
+            startDateObj ? gte(activityEntries.time_started, startDateObj) : undefined,
+            endDateObj ? lte(activityEntries.time_started, endDateObj) : undefined
+          )
+        )
+        .orderBy(activityEntries.time_started)
+        .limit(type === 'activity' ? limitNum : 50);
+
+      entries.push(...activities.map(a => ({
+        id: a.id,
+        userId: a.user_id,
+        type: 'activity',
+        timestamp: a.time_started,
+        createdAt: a.created_at,
+        updatedAt: a.updated_at,
+        data: {
+          activity_type: a.activity_type,
+          duration_minutes: a.duration_minutes,
+          intensity: a.intensity,
+          location_description: a.location_description,
+          notes: a.notes,
+          temperature_change_type: a.temperature_change_type,
+          temperature_from: a.temperature_from,
+          temperature_to: a.temperature_to,
+          social_event_type: a.social_event_type,
+          crowd_size: a.crowd_size
+        }
+      })));
+    }
+
+    // Fetch illness entries
+    if (type === 'illness' || !type) {
+      const illnesses = await db
+        .select()
+        .from(illnessEntries)
+        .where(
+          and(
+            eq(illnessEntries.user_id, userId),
+            startDateObj ? gte(illnessEntries.first_symptoms_at, startDateObj) : undefined,
+            endDateObj ? lte(illnessEntries.first_symptoms_at, endDateObj) : undefined
+          )
+        )
+        .orderBy(desc(illnessEntries.first_symptoms_at))
+        .limit(type === 'illness' ? limitNum : 50);
+
+      console.log('🩺 Illness query results:', illnesses.length, 'entries found');
+      if (illnesses.length > 0) {
+        console.log('First illness:', JSON.stringify(illnesses[0], null, 2));
+      }
+
+      entries.push(...illnesses.map(i => ({
+        id: i.id,
+        userId: i.user_id,
+        type: 'illness',
+        timestamp: i.became_sick_at || i.first_symptoms_at || i.created_at,
+        createdAt: i.created_at,
+        updatedAt: i.updated_at,
+        data: {
+          illness_type: i.illness_type,
+          custom_illness_name: i.custom_illness_name,
+          status: i.status,
+          symptoms: i.symptoms,
+          severity: i.severity,
+          has_fever: i.has_fever,
+          temperature_celsius: i.temperature_celsius,
+          mcas_flare_during_illness: i.mcas_flare_during_illness,
+          mcas_severity_increase: i.mcas_severity_increase,
+          suspected_source: i.suspected_source,
+          notes: i.notes
+        }
+      })));
+    }
+
+    // Fetch health metrics
+    if (type === 'health_metric' || !type) {
+      const metrics = await db
+        .select()
+        .from(healthMetrics)
+        .where(
+          and(
+            eq(healthMetrics.user_id, userId),
+            startDateObj ? gte(healthMetrics.created_at, startDateObj) : undefined,
+            endDateObj ? lte(healthMetrics.created_at, endDateObj) : undefined
+          )
+        )
+        .orderBy(healthMetrics.created_at)
+        .limit(type === 'health_metric' ? limitNum : 50);
+
+      entries.push(...metrics.map(m => ({
+        id: m.id,
+        userId: m.user_id,
+        type: 'health_metric',
+        timestamp: m.created_at,
+        createdAt: m.created_at,
+        updatedAt: m.updated_at,
+        data: {
+          sleep_quality: m.sleep_quality,
+          energy_level: m.energy_level,
+          stress_level: m.stress_level,
+          mood_rating: m.mood_rating,
+          notes: m.notes
+        }
+      })));
+    }
+
     // Sort by timestamp (newest first)
     entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    console.log('📊 Final entries before pagination:', entries.length, 'total');
+    console.log('Entry types:', entries.map(e => e.type).join(', '));
 
     // Apply pagination if not filtered by type
     if (!type) {
       const total = entries.length;
       entries = entries.slice(offsetNum, offsetNum + limitNum);
+
+      console.log('📤 Sending response with', entries.length, 'entries');
 
       res.json({
         success: true,
@@ -418,6 +617,93 @@ router.put('/entries/:id', async (req: AuthenticatedRequest, res, next) => {
       case 'symptom':
         throw new ValidationError('Symptom entries cannot be updated via this endpoint. Use symptom-specific endpoints.');
 
+      case 'activity':
+        const activityUpdates: any = {
+          activity_type: entryData.data.activity_type,
+          duration_minutes: entryData.data.duration_minutes,
+          intensity: entryData.data.intensity,
+          location_description: entryData.data.location_description,
+          notes: entryData.data.notes,
+          temperature_change_type: entryData.data.temperature_change_type,
+          temperature_from: entryData.data.temperature_from,
+          temperature_to: entryData.data.temperature_to,
+          social_event_type: entryData.data.social_event_type,
+          crowd_size: entryData.data.crowd_size
+        };
+        if (entryData.timestamp) {
+          activityUpdates.time_started = new Date(entryData.timestamp);
+        }
+        const activityResult = await db
+          .update(activityEntries)
+          .set(activityUpdates)
+          .where(and(eq(activityEntries.id, entryId), eq(activityEntries.user_id, userId)))
+          .returning();
+        updatedEntry = activityResult[0];
+        break;
+
+      case 'health_metric':
+        const healthMetricUpdates: any = {
+          sleep_quality: entryData.data.sleep_quality,
+          energy_level: entryData.data.energy_level,
+          stress_level: entryData.data.stress_level,
+          mood_rating: entryData.data.mood_rating,
+          notes: entryData.data.notes
+        };
+        if (entryData.timestamp) {
+          healthMetricUpdates.created_at = new Date(entryData.timestamp);
+        }
+        const healthMetricResult = await db
+          .update(healthMetrics)
+          .set(healthMetricUpdates)
+          .where(and(eq(healthMetrics.id, entryId), eq(healthMetrics.user_id, userId)))
+          .returning();
+        updatedEntry = healthMetricResult[0];
+        break;
+
+      case 'medication':
+        const medicationUpdates: any = {
+          custom_name: entryData.data.medication_name,
+          medication_type: entryData.data.medication_type,
+          dosage: entryData.data.dosage,
+          dosage_unit: entryData.data.dosage_unit,
+          notes: entryData.data.notes
+        };
+        if (entryData.timestamp) {
+          medicationUpdates.time_taken = new Date(entryData.timestamp);
+        }
+        const medicationResult = await db
+          .update(userMedications)
+          .set(medicationUpdates)
+          .where(and(eq(userMedications.id, entryId), eq(userMedications.user_id, userId)))
+          .returning();
+        updatedEntry = medicationResult[0];
+        break;
+
+      case 'illness':
+        const illnessUpdates: any = {
+          illness_type: entryData.data.illness_type,
+          custom_illness_name: entryData.data.custom_illness_name,
+          status: entryData.data.status,
+          symptoms: entryData.data.symptoms,
+          severity: entryData.data.severity,
+          has_fever: entryData.data.has_fever,
+          temperature_celsius: entryData.data.temperature_celsius,
+          mcas_flare_during_illness: entryData.data.mcas_flare_during_illness,
+          mcas_severity_increase: entryData.data.mcas_severity_increase,
+          suspected_source: entryData.data.suspected_source,
+          notes: entryData.data.notes
+        };
+        if (entryData.timestamp) {
+          illnessUpdates.first_symptoms_at = new Date(entryData.timestamp);
+        }
+        const illnessResult = await db
+          .update(illnessEntries)
+          .set(illnessUpdates)
+          .where(and(eq(illnessEntries.id, entryId), eq(illnessEntries.user_id, userId)))
+          .returning();
+        updatedEntry = illnessResult[0];
+        break;
+
       default:
         throw new ValidationError(`Unsupported diary entry type: ${(entryData as any).type}`);
     }
@@ -462,6 +748,38 @@ router.delete('/entries/:id', async (req: AuthenticatedRequest, res, next) => {
       deleted = await SymptomService.deleteSymptom(userId, entryId);
     }
 
+    if (!deleted && (type === 'activity' || !type)) {
+      const result = await db
+        .delete(activityEntries)
+        .where(and(eq(activityEntries.id, entryId), eq(activityEntries.user_id, userId)))
+        .returning();
+      deleted = result.length > 0;
+    }
+
+    if (!deleted && (type === 'health_metric' || !type)) {
+      const result = await db
+        .delete(healthMetrics)
+        .where(and(eq(healthMetrics.id, entryId), eq(healthMetrics.user_id, userId)))
+        .returning();
+      deleted = result.length > 0;
+    }
+
+    if (!deleted && (type === 'medication' || !type)) {
+      const result = await db
+        .delete(userMedications)
+        .where(and(eq(userMedications.id, entryId), eq(userMedications.user_id, userId)))
+        .returning();
+      deleted = result.length > 0;
+    }
+
+    if (!deleted && (type === 'illness' || !type)) {
+      const result = await db
+        .delete(illnessEntries)
+        .where(and(eq(illnessEntries.id, entryId), eq(illnessEntries.user_id, userId)))
+        .returning();
+      deleted = result.length > 0;
+    }
+
     if (!deleted) {
       throw new NotFoundError('Diary entry not found');
     }
@@ -471,6 +789,60 @@ router.delete('/entries/:id', async (req: AuthenticatedRequest, res, next) => {
       message: 'Diary entry deleted successfully'
     });
   } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/diary/meal-from-recipe - Log meal from user recipe with portion calculation
+const recipeMealSchema = z.object({
+  recipe_id: z.number().int().positive(),
+  portions_consumed: z.number()
+    .positive('Porsjoner må være positiv')
+    .min(0.25, 'Minimum porsjon er 0.25')
+    .max(20, 'Maksimum porsjoner er 20'),
+  meal_type: z.enum(['breakfast', 'lunch', 'dinner', 'snack', 'evening']),
+  meal_time: z.string().datetime(),
+  dao_taken_before: z.boolean().optional(),
+  dao_minutes_before: z.number().int().min(0).max(120).optional(),
+  notes: z.string().max(1000).optional()
+});
+
+router.post('/meal-from-recipe', diaryRateLimit, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    if (!req.user) {
+      throw new Error('User not authenticated');
+    }
+
+    const userId = req.user.userId;
+    const mealData = recipeMealSchema.parse(req.body);
+
+    // Convert meal_time string to Date
+    const mealTime = new Date(mealData.meal_time);
+
+    const mealEntry = await MealDiaryService.logMealFromRecipe(userId, {
+      recipe_id: mealData.recipe_id,
+      portions_consumed: mealData.portions_consumed,
+      meal_type: mealData.meal_type,
+      meal_time: mealTime,
+      dao_taken_before: mealData.dao_taken_before,
+      dao_minutes_before: mealData.dao_minutes_before,
+      notes: mealData.notes
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Måltid logget fra oppskrift',
+      data: {
+        meal: mealEntry
+      }
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Recipe not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'Oppskrift ikke funnet'
+      });
+    }
     next(error);
   }
 });

@@ -99,27 +99,75 @@ export class AirthingsIntegrationService {
    * Get room air quality history for correlation analysis
    *
    * @param roomId - Device/room ID
-   * @param hours - Number of hours to look back (default: 2)
-   * @returns Historical air quality snapshots
+   * @param symptomTime - When the symptom occurred
+   * @param exposureDurationMinutes - How long the user was in the room (optional)
+   * @returns Air quality snapshot with peak values from exposure period
    */
-  async getRoomAirQualityHistory(roomId: string, hours: number = 2): Promise<AirQualitySnapshot[]> {
+  async getRoomAirQualityHistory(
+    roomId: string,
+    symptomTime: Date,
+    exposureDurationMinutes?: number
+  ): Promise<AirQualitySnapshot[]> {
     try {
-      // Note: Airthings API provides current data, not historical
-      // For now, we return the current snapshot
-      // Future enhancement: Store historical data in our database
-
-      const sensorData = await airthingsServiceV2.getDeviceSensorData(roomId);
       const devices = await airthingsServiceV2.getDevices();
       const device = devices.find(d => d.id === roomId);
 
-      if (!sensorData || !device) {
+      if (!device) {
+        console.warn(`Device ${roomId} not found`);
         return [];
       }
+
+      const roomName = device.segment?.name || device.deviceType || 'Unknown Room';
+
+      // Try to fetch historical data for the exposure period
+      // Default to 2 hours before symptom if no duration specified
+      const durationMs = exposureDurationMinutes ? exposureDurationMinutes * 60 * 1000 : 2 * 60 * 60 * 1000;
+      const startTime = new Date(symptomTime.getTime() - durationMs);
+      const endTime = symptomTime;
+
+      try {
+        console.log(`📊 Fetching historical air quality for ${roomName} from ${startTime.toISOString()} to ${endTime.toISOString()}`);
+
+        const historicalSamples = await airthingsServiceV2.getDeviceHistoricalSamples(
+          roomId,
+          startTime,
+          endTime,
+          'HOUR' // Get hourly resolution for detailed analysis
+        );
+
+        if (historicalSamples && historicalSamples.length > 0) {
+          console.log(`✅ Retrieved ${historicalSamples.length} historical samples`);
+
+          // Calculate peak (worst) values from the exposure period
+          const peakValues = this.calculatePeakAirQualityValues(historicalSamples);
+
+          return [{
+            timestamp: endTime,
+            room_id: roomId,
+            room_name: roomName,
+            metrics: {
+              co2: peakValues.co2,
+              voc: peakValues.voc,
+              humidity: peakValues.humidity,
+              temperature: peakValues.temperature,
+              radon: peakValues.radon,
+              pm25: peakValues.pm25,
+              pressure: peakValues.pressure,
+            },
+          }];
+        }
+      } catch (historicalError) {
+        console.warn('Historical samples not available, using latest data:', historicalError);
+      }
+
+      // Fallback to latest data if historical not available
+      console.log(`📊 Falling back to latest samples for ${roomName}`);
+      const sensorData = await airthingsServiceV2.getDeviceSensorData(roomId);
 
       return [{
         timestamp: new Date(),
         room_id: roomId,
-        room_name: device.segment?.name || device.deviceType || 'Unknown Room',
+        room_name: roomName,
         metrics: {
           co2: sensorData.co2,
           voc: sensorData.voc,
@@ -134,6 +182,51 @@ export class AirthingsIntegrationService {
       console.error(`Error getting air quality history for room ${roomId}:`, error);
       return [];
     }
+  }
+
+  /**
+   * Calculate peak (worst) air quality values from multiple samples
+   * Takes the maximum CO2, VOC, PM2.5, radon and averages temperature/humidity
+   */
+  private calculatePeakAirQualityValues(samples: any[]): {
+    co2?: number;
+    voc?: number;
+    humidity?: number;
+    temperature?: number;
+    radon?: number;
+    pm25?: number;
+    pressure?: number;
+  } {
+    const result: any = {};
+
+    // Extract all non-null values for each metric
+    const co2Values = samples.map(s => s.co2).filter(v => v != null);
+    const vocValues = samples.map(s => s.voc).filter(v => v != null);
+    const pm25Values = samples.map(s => s.pm25).filter(v => v != null);
+    const radonValues = samples.map(s => s.radonShortTermAvg || s.radon).filter(v => v != null);
+    const humidityValues = samples.map(s => s.humidity).filter(v => v != null);
+    const tempValues = samples.map(s => s.temperature || s.temp).filter(v => v != null);
+    const pressureValues = samples.map(s => s.pressure).filter(v => v != null);
+
+    // For pollutants (CO2, VOC, PM2.5, Radon): take MAXIMUM (worst case)
+    if (co2Values.length > 0) result.co2 = Math.max(...co2Values);
+    if (vocValues.length > 0) result.voc = Math.max(...vocValues);
+    if (pm25Values.length > 0) result.pm25 = Math.max(...pm25Values);
+    if (radonValues.length > 0) result.radon = Math.max(...radonValues);
+
+    // For environmental factors (temp, humidity, pressure): take AVERAGE
+    if (humidityValues.length > 0) {
+      result.humidity = Math.round(humidityValues.reduce((a, b) => a + b, 0) / humidityValues.length);
+    }
+    if (tempValues.length > 0) {
+      result.temperature = Math.round((tempValues.reduce((a, b) => a + b, 0) / tempValues.length) * 10) / 10;
+    }
+    if (pressureValues.length > 0) {
+      result.pressure = Math.round(pressureValues.reduce((a, b) => a + b, 0) / pressureValues.length);
+    }
+
+    console.log(`📈 Peak values calculated from ${samples.length} samples:`, result);
+    return result;
   }
 
   /**

@@ -167,7 +167,7 @@ export function IllnessAddPage() {
     <ProgressiveFormContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
-      onClose={() => navigate('/log')}
+      onClose={() => navigate('/diary')}
       title="Registrer sykdom"
     >
       {/* Step 0: Select illness type */}

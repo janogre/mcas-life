@@ -983,6 +983,54 @@ export const mealFoods = pgTable('meal_foods', {
   foodIdIdx: index('meal_foods_food_id_idx').on(table.food_id)
 }));
 
+// User Recipes - Custom user-created recipes with MCAS scoring
+export const userRecipes = pgTable('user_recipes', {
+  id: serial('id').primaryKey(),
+  user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+
+  // Recipe metadata
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description'),
+  prep_time_minutes: integer('prep_time_minutes'),
+  servings: integer('servings').notNull(), // Total portions recipe makes (e.g., 4)
+
+  // Ingredients (JSONB array)
+  // Structure: [{food_id: number, amount: number, unit: string, custom_name?: string}]
+  ingredients: jsonb('ingredients').$type<Array<{
+    food_id: number;
+    amount: number;
+    unit: string;
+    custom_name?: string;
+  }>>().notNull(),
+
+  // Instructions
+  instructions: text('instructions'),
+  notes: text('notes'),
+
+  // MCAS calculations (auto-calculated like Spoonacular recipes)
+  calculated_mcas_score: real('calculated_mcas_score').notNull(), // 0-100 score
+  calculated_histamine_load: real('calculated_histamine_load'),
+  trigger_warnings: jsonb('trigger_warnings').$type<string[]>(),
+  safety_level: varchar('safety_level', { length: 20 }), // 'safe' | 'caution' | 'risky' | 'unsafe'
+
+  // Usage tracking
+  times_made: integer('times_made').notNull().default(0),
+  last_made_at: timestamp('last_made_at'),
+
+  // Sharing (future feature)
+  is_public: boolean('is_public').notNull().default(false),
+
+  // Audit
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow()
+}, (table) => ({
+  userIdIdx: index('user_recipes_user_id_idx').on(table.user_id),
+  mcasScoreIdx: index('user_recipes_mcas_score_idx').on(table.calculated_mcas_score),
+  timesMadeIdx: index('user_recipes_times_made_idx').on(table.times_made),
+  userCreatedIdx: index('user_recipes_user_created_idx').on(table.user_id, table.created_at),
+  ingredientsGinIdx: index('user_recipes_ingredients_gin_idx').on(table.ingredients)
+}));
+
 // Note: Zod validation schemas will be added when drizzle-zod compatibility is resolved
 
 // Export all table types for use in services
@@ -1009,5 +1057,7 @@ export type NewIllnessEntry = typeof illnessEntries.$inferInsert;
 export type MealEntry = typeof mealEntries.$inferSelect;
 export type NewMealEntry = typeof mealEntries.$inferInsert;
 export type MealFood = typeof mealFoods.$inferSelect;
-export type NewMealFood = typeof mealFoods.$inferInsert; 
+export type NewMealFood = typeof mealFoods.$inferInsert;
+export type UserRecipe = typeof userRecipes.$inferSelect;
+export type NewUserRecipe = typeof userRecipes.$inferInsert; 
 

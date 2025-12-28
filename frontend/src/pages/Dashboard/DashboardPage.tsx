@@ -19,8 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDate } from '../../lib/utils';
-import { ApiTest } from '../../components/Debug/ApiTest';
-import { UserFlowDemo } from '../../components/Demo/UserFlowDemo';
+import { ProgressEncouragement } from '../../components/UI/ProgressEncouragement';
 import './dashboard-animations.css';
 
 export function DashboardPage() {
@@ -282,6 +281,9 @@ export function DashboardPage() {
           );
         })}
       </div>
+
+      {/* Progress and Encouragement */}
+      <ProgressEncouragement compact={false} />
 
       {/* How It Works - Workflow Diagram */}
       <div style={{
@@ -570,74 +572,6 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Quick Actions - Elevated interactive buttons */}
-      <div style={{
-        background: 'white',
-        borderRadius: 'var(--radius-gentle)',
-        padding: '2rem',
-        boxShadow: 'var(--shadow-gentle)',
-        border: '1px solid var(--color-sage-100)',
-      }}>
-        <h2 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '1.5rem',
-          fontWeight: 600,
-          color: 'var(--color-sage-900)',
-          marginBottom: '1.5rem',
-          letterSpacing: '-0.01em',
-        }}>
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { icon: Plus, label: 'Log Symptom', color: 'var(--color-alert-red)', bg: '#fef2f2' },
-            { icon: Search, label: 'Search Foods', color: 'var(--color-medical-600)', bg: 'var(--color-medical-50)' },
-            { icon: Brain, label: 'AI Analysis', color: '#7c3aed', bg: '#f5f3ff' },
-            { icon: BarChart3, label: 'View Reports', color: 'var(--color-alert-blue)', bg: '#eff6ff' },
-          ].map((action, index) => {
-            const Icon = action.icon;
-            return (
-              <button
-                key={index}
-                className="quick-action-btn"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  padding: '1.5rem 1rem',
-                  borderRadius: 'var(--radius-soft)',
-                  border: `2px solid ${action.bg}`,
-                  background: 'white',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  cursor: 'pointer',
-                }}
-              >
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  background: action.bg,
-                  borderRadius: '0.75rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: '0.75rem',
-                  transition: 'transform 0.3s ease',
-                }}>
-                  <Icon style={{ width: '24px', height: '24px', color: action.color }} />
-                </div>
-                <span style={{
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  color: 'var(--color-sage-800)',
-                }}>
-                  {action.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Recent Activity - Timeline style */}
         <div style={{
@@ -832,12 +766,6 @@ export function DashboardPage() {
             })}
           </div>
         </div>
-      </div>
-
-      {/* Development Testing Components */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <ApiTest />
-        <UserFlowDemo />
       </div>
     </div>
   );

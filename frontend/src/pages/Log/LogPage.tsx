@@ -194,12 +194,12 @@ export function LogPage() {
       description: 'Logg symptomer',
       color: '#ef4444',
       bgColor: '#fee2e2',
-      onClick: () => navigate('/symptoms/register'),
+      onClick: () => navigate('/symptoms/add'),
     },
     {
       icon: <Pill style={{ width: '28px', height: '28px' }} />,
-      label: 'Medisin',
-      description: 'Registrer medisin',
+      label: 'Medisin & Kosttilskudd',
+      description: 'Registrer medisin/supplement',
       color: '#8b5cf6',
       bgColor: '#f3e8ff',
       onClick: () => navigate('/medications/add'),
@@ -313,7 +313,7 @@ export function LogPage() {
               letterSpacing: '-0.02em',
             }}
           >
-            Hva vil du registrere?
+            Hurtigregistrering
           </h1>
           <p
             style={{
@@ -322,7 +322,7 @@ export function LogPage() {
               fontWeight: 400,
             }}
           >
-            Velg hva du vil logge i dag
+            Rask logging av symptomer, måltider og aktiviteter
           </p>
         </div>
       </div>

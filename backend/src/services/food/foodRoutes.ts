@@ -183,6 +183,48 @@ router.get('/search', searchRateLimit, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/foods/batch
+ * Get multiple foods by IDs in a single request
+ * Body: { food_ids: number[] }
+ */
+router.post('/batch', searchRateLimit, async (req, res) => {
+  try {
+    const { food_ids } = req.body;
+
+    if (!Array.isArray(food_ids)) {
+      return res.status(400).json({ error: 'food_ids must be an array' });
+    }
+
+    if (food_ids.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+
+    if (food_ids.length > 100) {
+      return res.status(400).json({ error: 'Cannot fetch more than 100 foods at once' });
+    }
+
+    // Validate all IDs are numbers
+    if (!food_ids.every(id => typeof id === 'number' && Number.isInteger(id) && id > 0)) {
+      return res.status(400).json({ error: 'All food_ids must be positive integers' });
+    }
+
+    const foods = await foodService.getFoodsByIds(food_ids);
+
+    res.json({
+      success: true,
+      data: foods
+    });
+
+  } catch (error) {
+    console.error('Batch food fetch error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch foods',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // ==================== USER-SPECIFIC ENDPOINTS ====================
 
 // Generous rate limit for approved foods (frequently accessed by diary page)
@@ -194,13 +236,18 @@ const approvedFoodsRateLimit = rateLimit({
 
 /**
  * GET /api/foods/approved
- * Get user's approved foods
+ * Get user's approved foods with optional food details
  * Requires authentication
+ * Query params: ?include_details=true to include full food information
  */
 router.get('/approved', approvedFoodsRateLimit, authenticateToken, async (req, res) => {
   try {
     const userId = req.user!.userId;
-    const approvedFoods = await foodService.getUserApprovedFoods(userId);
+    const includeDetails = req.query.include_details === 'true';
+
+    const approvedFoods = includeDetails
+      ? await foodService.getUserApprovedFoodsWithDetails(userId)
+      : await foodService.getUserApprovedFoods(userId);
 
     res.json({
       success: true,

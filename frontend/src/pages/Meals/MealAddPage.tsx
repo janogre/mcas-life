@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mealsApi, MealFood, foodApi, Food, ApprovedFood } from '../../lib/api';
+import { mealsApi, MealFood, foodApi, Food, ApprovedFood, userRecipesApi, UserRecipe } from '../../lib/api';
 
 interface MealData {
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -54,11 +54,18 @@ export function MealAddPage() {
   const [searchInAllFoods, setSearchInAllFoods] = useState(false);
   const [selectedFoods, setSelectedFoods] = useState<Array<{ food: Food; amount: string; unit: string }>>([]);
 
+  // Recipe mode state
+  const [searchMode, setSearchMode] = useState<'foods' | 'recipes'>('foods');
+  const [userRecipes, setUserRecipes] = useState<UserRecipe[]>([]);
+  const [selectedRecipe, setSelectedRecipe] = useState<UserRecipe | null>(null);
+  const [recipeMode, setRecipeMode] = useState(false);
+  const [portionsConsumed, setPortionsConsumed] = useState<number>(1);
+
   // Cache approved foods to avoid repeated API calls
   const [approvedFoodsCache, setApprovedFoodsCache] = useState<ApprovedFood[] | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load approved foods once when component mounts
+  // Load approved foods and user recipes once when component mounts
   useEffect(() => {
     const loadApprovedFoods = async () => {
       try {
@@ -69,7 +76,16 @@ export function MealAddPage() {
         setApprovedFoodsCache([]);
       }
     };
+    const loadUserRecipes = async () => {
+      try {
+        const response = await userRecipesApi.getAll();
+        setUserRecipes(response.recipes); // Extract recipes array from response
+      } catch (error) {
+        console.error('Failed to load user recipes:', error);
+      }
+    };
     loadApprovedFoods();
+    loadUserRecipes();
   }, []);
 
   // Cleanup timeout on unmount
@@ -162,6 +178,22 @@ export function MealAddPage() {
   };
 
   const handleNext = () => {
+    if (currentStep === 0 && recipeMode && selectedRecipe) {
+      // Recipe mode: Calculate portion-adjusted ingredients
+      const mealFoods: MealFood[] = selectedRecipe.ingredients.map(ing => {
+        const portionAmount = (ing.amount / selectedRecipe.servings) * portionsConsumed;
+        return {
+          food_id: ing.food_id,
+          amount: portionAmount,
+          unit: ing.unit,
+        };
+      });
+      setMealData({ ...mealData, foods: mealFoods });
+      // Skip step 1 (food selection) and go directly to step 2 (time/DAO)
+      setCurrentStep(2);
+      return;
+    }
+
     if (currentStep === 1) {
       // Convert selected foods to MealFood format
       const mealFoods: MealFood[] = selectedFoods
@@ -203,7 +235,7 @@ export function MealAddPage() {
         notes: mealData.notes,
       });
 
-      navigate('/log');
+      navigate('/diary');
     } catch (error) {
       console.error('Failed to log meal:', error);
       alert('Kunne ikke registrere måltid. Vennligst prøv igjen.');
@@ -215,6 +247,9 @@ export function MealAddPage() {
   const canProceed = () => {
     switch (currentStep) {
       case 0:
+        if (recipeMode && selectedRecipe) {
+          return portionsConsumed > 0 && portionsConsumed <= 20;
+        }
         return !!mealData.meal_type;
       case 1:
         return selectedFoods.length > 0 && selectedFoods.every(sf => sf.amount && parseFloat(sf.amount) > 0);
@@ -275,28 +310,89 @@ export function MealAddPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Step 0: Select meal type */}
+        {/* Step 0: Select meal type OR portions (if recipe selected) */}
         {currentStep === 0 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold mb-4">Velg måltidstype</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {MEAL_TYPES.map((type) => (
-                <button
-                  key={type.value}
-                  onClick={() => setMealData({ ...mealData, meal_type: type.value as any })}
-                  className={`p-6 rounded-xl border-2 transition-all ${
-                    mealData.meal_type === type.value
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
-                  }`}
-                >
-                  <div className="text-4xl mb-2">{type.emoji}</div>
-                  <div className="font-semibold" style={{ color: type.color }}>
-                    {type.label}
+            {recipeMode && selectedRecipe ? (
+              /* Recipe portion selection */
+              <>
+                <h2 className="text-lg font-semibold mb-4">Hvor mye spiste du?</h2>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <h3 className="font-medium text-blue-900 mb-1">{selectedRecipe.title}</h3>
+                  <p className="text-sm text-blue-700">Oppskriften gir {selectedRecipe.servings} porsjoner</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Hvor mange porsjoner spiste du?
+                  </label>
+                  <input
+                    type="number"
+                    min="0.25"
+                    max="20"
+                    step="0.25"
+                    value={portionsConsumed}
+                    onChange={(e) => setPortionsConsumed(parseFloat(e.target.value))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                  />
+                  <p className="text-sm text-gray-500 mt-2">
+                    Du kan taste desimaltall (f.eks. 0.5 for halv porsjon, 1.5 for halvanna porsjon)
+                  </p>
+                </div>
+
+                {/* Preview of calculated portions */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Forhåndsvisning av mengder:</h4>
+                  <div className="space-y-1 text-sm text-gray-700">
+                    {selectedRecipe.ingredients.map((ing, idx) => {
+                      const portionAmount = (ing.amount / selectedRecipe.servings) * portionsConsumed;
+                      return (
+                        <div key={idx} className="flex justify-between">
+                          <span>{ing.custom_name || `Matvare #${ing.food_id}`}</span>
+                          <span className="font-medium">
+                            {portionAmount.toFixed(1)} {ing.unit}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setRecipeMode(false);
+                    setSelectedRecipe(null);
+                    setSearchMode('foods');
+                  }}
+                  className="text-blue-600 hover:text-blue-700 text-sm"
+                >
+                  ← Tilbake til matvaresøk
                 </button>
-              ))}
-            </div>
+              </>
+            ) : (
+              /* Normal meal type selection */
+              <>
+                <h2 className="text-lg font-semibold mb-4">Velg måltidstype</h2>
+                <div className="grid grid-cols-2 gap-3">
+                  {MEAL_TYPES.map((type) => (
+                    <button
+                      key={type.value}
+                      onClick={() => setMealData({ ...mealData, meal_type: type.value as any })}
+                      className={`p-6 rounded-xl border-2 transition-all ${
+                        mealData.meal_type === type.value
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="text-4xl mb-2">{type.emoji}</div>
+                      <div className="font-semibold" style={{ color: type.color }}>
+                        {type.label}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -305,8 +401,101 @@ export function MealAddPage() {
           <div className="space-y-4">
             <h2 className="text-lg font-semibold mb-4">Legg til matvarer</h2>
 
-            {/* Search */}
-            <div className="space-y-3">
+            {/* Toggle between Foods and Recipes */}
+            <div className="flex gap-2 mb-4 p-1 bg-gray-100 rounded-lg">
+              <button
+                onClick={() => setSearchMode('foods')}
+                className={`flex-1 py-2 px-4 rounded-md transition-colors ${
+                  searchMode === 'foods'
+                    ? 'bg-white text-gray-900 shadow-sm font-medium'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                🛡️ Matvarer
+              </button>
+              <button
+                onClick={() => setSearchMode('recipes')}
+                className={`flex-1 py-2 px-4 rounded-md transition-colors ${
+                  searchMode === 'recipes'
+                    ? 'bg-white text-gray-900 shadow-sm font-medium'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                👨‍🍳 Oppskrifter
+              </button>
+            </div>
+
+            {searchMode === 'recipes' ? (
+              /* Recipe search mode */
+              <>
+                <h3 className="text-md font-semibold text-gray-900 mb-3">Velg oppskrift</h3>
+                <div className="mb-3 relative">
+                  <input
+                    type="text"
+                    placeholder="Søk i oppskrifter..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {(userRecipes || [])
+                    .filter(recipe => {
+                      if (!searchQuery.trim()) return true;
+                      const query = searchQuery.toLowerCase();
+                      return recipe.title.toLowerCase().includes(query) ||
+                             recipe.description?.toLowerCase().includes(query);
+                    })
+                    .map((recipe) => (
+                      <div
+                        key={recipe.id}
+                        onClick={() => {
+                          setSelectedRecipe(recipe);
+                          setRecipeMode(true);
+                          setPortionsConsumed(1);
+                          setCurrentStep(0); // Go back to select portions
+                        }}
+                        className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900">{recipe.title}</h4>
+                            {recipe.description && (
+                              <p className="text-sm text-gray-600 mt-1">{recipe.description}</p>
+                            )}
+                            <div className="flex items-center gap-3 mt-2 text-sm text-gray-500">
+                              <span>🍽️ {recipe.servings} porsjoner</span>
+                              {recipe.prep_time_minutes && (
+                                <span>⏱️ {recipe.prep_time_minutes} min</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="ml-3">
+                            <div
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                recipe.calculated_mcas_score >= 80
+                                  ? 'bg-green-100 text-green-800'
+                                  : recipe.calculated_mcas_score >= 60
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : recipe.calculated_mcas_score >= 40
+                                  ? 'bg-orange-100 text-orange-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                            >
+                              {recipe.calculated_mcas_score}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </>
+            ) : (
+              /* Food search mode */
+              <>
+                {/* Search */}
+                <div className="space-y-3">
               <div className="relative">
                 <input
                   type="text"
@@ -419,6 +608,8 @@ export function MealAddPage() {
                   </div>
                 ))}
               </div>
+            )}
+              </>
             )}
           </div>
         )}

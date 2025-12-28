@@ -79,6 +79,7 @@ const PHYSICAL_ACTIVITIES = [
   { value: 'walking', label: 'Gåtur' },
   { value: 'running', label: 'Løping' },
   { value: 'cycling', label: 'Sykling' },
+  { value: 'strength_training', label: 'Styrketrening' },
   { value: 'household', label: 'Husarbeid' },
   { value: 'gardening', label: 'Hagearbeid' },
   { value: 'yoga', label: 'Yoga/strekk' },
@@ -188,7 +189,7 @@ export function ActivityAddPage() {
     <ProgressiveFormContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
-      onClose={() => navigate('/log')}
+      onClose={() => navigate('/diary')}
       title="Registrer aktivitet"
     >
       {/* Step 0: Select activity type */}

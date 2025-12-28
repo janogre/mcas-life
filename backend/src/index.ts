@@ -10,6 +10,7 @@ import { notFoundHandler } from './middleware/notFoundHandler.js';
 // Import services (new microservices architecture)
 import { authRoutes, authenticateToken } from './services/auth/index.js';
 import { foodRoutes } from './services/food/foodRoutes.js';
+import userRecipeRoutes from './services/food/userRecipeRoutes.js';
 import { analyticsRoutes } from './services/analytics/analyticsRoutes.js';
 import { recipeRoutes } from './services/recipes/recipeRoutes.js';
 
@@ -105,6 +106,7 @@ if (process.env['NODE_ENV'] !== 'test') {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/foods', foodRoutes); // Food management and approved foods
+app.use('/api/user-recipes', userRecipeRoutes); // User-created custom recipes with MCAS analysis
 app.use('/api/analytics', analyticsRoutes); // AI-driven correlation analysis and trigger detection
 app.use('/api/recipes', authenticateToken, recipeRoutes); // Recipe search and management with Spoonacular API
 app.use('/api/sighi', foodRoutes); // Legacy compatibility for existing SIGHI endpoints
@@ -133,6 +135,7 @@ app.get('/', (req, res) => {
       '/api/health',
       '/api/auth',
       '/api/foods',
+      '/api/user-recipes',
       '/api/analytics',
       '/api/recipes',
       '/api/symptoms',

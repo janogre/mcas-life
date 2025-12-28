@@ -58,11 +58,11 @@ export function QuickAddModal({ isOpen, onClose, contextType = 'dashboard' }: Qu
       icon: <AlertCircle style={{ width: '24px', height: '24px' }} />,
       color: '#ef4444',
       bgColor: '#fee2e2',
-      route: '/symptoms/register',
+      route: '/symptoms/add',
     },
     {
       type: 'medication',
-      label: 'Medisin',
+      label: 'Medisin & Kosttilskudd',
       icon: <Pill style={{ width: '24px', height: '24px' }} />,
       color: '#8b5cf6',
       bgColor: '#f3e8ff',

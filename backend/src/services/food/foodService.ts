@@ -10,7 +10,7 @@
  * - Nutrition data integration
  */
 
-import { eq, and, or, like, desc, asc, sql } from 'drizzle-orm';
+import { eq, and, or, like, desc, asc, sql, inArray } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { foods, approvedFoods, foodDiaryEntries } from '../../db/schema.js';
 import type { 
@@ -155,6 +155,22 @@ export class FoodService {
   }
 
   /**
+   * Get multiple foods by IDs (batch operation)
+   */
+  async getFoodsByIds(foodIds: number[]): Promise<Food[]> {
+    if (foodIds.length === 0) {
+      return [];
+    }
+
+    const results = await db
+      .select()
+      .from(foods)
+      .where(inArray(foods.id, foodIds));
+
+    return results.map(this.mapDatabaseToFood);
+  }
+
+  /**
    * Get foods by compatibility level
    */
   async getFoodsByCompatibility(compatibility: FoodCompatibility): Promise<Food[]> {
@@ -210,6 +226,30 @@ export class FoodService {
       is_public: item.is_public,
       created_at: item.created_at,
       updated_at: item.updated_at
+    }));
+  }
+
+  /**
+   * Get user's approved foods with full food details (optimized)
+   */
+  async getUserApprovedFoodsWithDetails(userId: number): Promise<(ApprovedFood & { food?: Food })[]> {
+    const approvedList = await this.getUserApprovedFoods(userId);
+
+    if (approvedList.length === 0) {
+      return [];
+    }
+
+    // Batch fetch all food details
+    const foodIds = approvedList.map(af => af.food_id);
+    const foodsData = await this.getFoodsByIds(foodIds);
+
+    // Create a map for quick lookup
+    const foodMap = new Map(foodsData.map(f => [f.id, f]));
+
+    // Combine approved foods with their details
+    return approvedList.map(af => ({
+      ...af,
+      food: foodMap.get(af.food_id)
     }));
   }
 

@@ -164,9 +164,27 @@ export interface SymptomEntry {
   type: string;
   severity: number;
   duration_minutes: number;
+  intensity_change?: 'improving' | 'worsening' | 'stable';
+  body_regions?: string[];
   started_at: Date;
   ended_at?: Date;
+  suspected_triggers?: string[];
+  treatment_taken?: string;
+  treatment_effective?: boolean;
+  capture_method?: 'quick' | 'detailed' | 'retrospective';
+  enrichment_status?: 'minimal' | 'partial' | 'complete';
   notes?: string;
+  weather_data?: {
+    temperature: number;
+    humidity: number;
+    pressure: number;
+    weather_code: number;
+  };
+  room_exposures?: Array<{
+    room_id: string;
+    room_name: string;
+    time_spent_minutes?: number;
+  }>;
   created_at: Date;
   updated_at: Date;
 }
@@ -197,12 +215,39 @@ export interface PersonalFoodRating {
 export interface TriggerAnalysisResult {
   analysis_confidence: number;
   data_quality_score: number;
+  total_meals_analyzed?: number;
+  analysis_window_start: string;
+  analysis_window_end: string;
   likely_food_triggers: Array<{
     food_id: number;
-    food_name: string;
+    food_name_no: string;
+    food_name_en: string;
+    food_name?: string; // Legacy support
+    compatibility: number;
     correlation_score: number;
     time_consumed: string;
     time_to_symptom_hours: number;
+    confidence_level: 'low' | 'medium' | 'high';
+  }>;
+  likely_air_quality_triggers?: Array<{
+    room_id: string;
+    room_name: string;
+    time_spent_minutes: number;
+    correlation_score: number;
+    confidence_level: 'low' | 'medium' | 'high';
+    air_quality_metrics: {
+      co2?: number;
+      voc?: number;
+      humidity?: number;
+      temperature?: number;
+      radon?: number;
+      pm25?: number;
+    };
+    risk_assessment: {
+      risk_level: 'low' | 'moderate' | 'high' | 'unknown';
+      risk_score: number;
+      concerns: string[];
+    };
   }>;
   improvement_suggestions: string[];
   created_at: Date;
@@ -318,4 +363,81 @@ export interface SavedRecipe {
   times_made: number;
   created_at: Date;
   updated_at: Date;
+}
+
+// User Recipe Types - Custom user-created recipes
+export type RecipeSafetyLevel = 'safe' | 'caution' | 'risky' | 'unsafe';
+
+export interface RecipeIngredient {
+  food_id: number;
+  amount: number;
+  unit: 'g' | 'kg' | 'ml' | 'dl' | 'l' | 'stk' | 'ss' | 'ts' | 'kopp';
+  custom_name?: string;
+  food?: Food; // Populated when fetching recipe with details
+}
+
+export interface UserRecipe {
+  id: number;
+  user_id: number;
+  title: string;
+  description?: string;
+  prep_time_minutes?: number;
+  servings: number;
+  ingredients: RecipeIngredient[];
+  instructions?: string;
+  notes?: string;
+  calculated_mcas_score: number; // 0-100
+  calculated_histamine_load?: number;
+  trigger_warnings?: string[];
+  safety_level: RecipeSafetyLevel;
+  times_made: number;
+  last_made_at?: Date;
+  is_public: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CreateRecipeInput {
+  title: string;
+  description?: string;
+  prep_time_minutes?: number;
+  servings: number;
+  ingredients: RecipeIngredient[];
+  instructions?: string;
+  notes?: string;
+}
+
+export interface UpdateRecipeInput {
+  title?: string;
+  description?: string;
+  prep_time_minutes?: number;
+  servings?: number;
+  ingredients?: RecipeIngredient[];
+  instructions?: string;
+  notes?: string;
+}
+
+export interface PortionIngredient {
+  food_id: number;
+  amount: number;
+  unit: string;
+  custom_name?: string;
+  food?: Food;
+}
+
+export interface RecipePortionCalculation {
+  recipe_title: string;
+  total_servings: number;
+  portions_consumed: number;
+  ingredients: PortionIngredient[];
+}
+
+export interface LogMealFromRecipeInput {
+  recipe_id: number;
+  portions_consumed: number; // 0.25 - 20
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'evening';
+  meal_time: string; // ISO datetime
+  dao_taken_before?: boolean;
+  dao_minutes_before?: number;
+  notes?: string;
 }

@@ -12,8 +12,8 @@ import { authenticate, requireRole } from '../../middleware/auth.js';
 import { validateRequest } from '../../middleware/validation.js';
 import { rateLimitConfig } from '../../middleware/rateLimiting.js';
 import { db } from '../../db/index.js';
-import { userPreferences } from '../../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { userPreferences, symptomEntries, mealEntries, mealFoods, foods } from '../../db/schema.js';
+import { eq, and, gte, lte } from 'drizzle-orm';
 
 const router = Router();
 
@@ -38,7 +38,8 @@ async function getUserAnalysisMode(userId: number): Promise<'smart' | 'ai'> {
 // Validation schemas
 const triggerAnalysisSchema = z.object({
   symptom_entry_id: z.number().int().positive(),
-  analysis_window_hours: z.number().int().min(12).max(168).optional() // 12 hours to 1 week
+  analysis_window_hours: z.number().int().min(12).max(168).optional(), // 12 hours to 1 week
+  analysis_mode: z.enum(['smart', 'ai']).optional() // Allow user to choose analysis mode per request
 });
 
 const quickTriggerCheckSchema = z.object({
@@ -79,10 +80,10 @@ router.post('/trigger-correlation',
   async (req, res, next) => {
     try {
       const userId = req.user!.userId;
-      const { symptom_entry_id, analysis_window_hours } = req.body;
+      const { symptom_entry_id, analysis_window_hours, analysis_mode } = req.body;
 
-      // Get user's analysis mode preference
-      const analysisMode = await getUserAnalysisMode(userId);
+      // Use provided analysis_mode or fallback to user preference
+      const analysisMode = analysis_mode || await getUserAnalysisMode(userId);
 
       console.log(`🔍 Starting ${analysisMode.toUpperCase()} trigger correlation analysis for user ${userId}, symptom ${symptom_entry_id}`);
 
@@ -438,8 +439,97 @@ router.post('/real-time-risk',
 );
 
 /**
+ * GET /api/analytics/insights
+ *
+ * Comprehensive insights dashboard - symptom patterns, food history, recommendations
+ */
+router.get('/insights',
+  authenticate,
+  rateLimitConfig.analytics.user_data,
+  async (req, res, next) => {
+    try {
+      const userId = req.user!.userId;
+      const { days = 30 } = req.query;
+
+      console.log(`📊 Generating insights for user ${userId} (${days} days)`);
+
+      // Get all user analyses for pattern detection
+      const analyses = await analyticsService.getUserTriggerAnalyses(userId, 100);
+
+      // Get recent symptoms for trend analysis
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - parseInt(days as string));
+
+      const symptoms = await db
+        .select()
+        .from(symptomEntries)
+        .where(
+          and(
+            eq(symptomEntries.user_id, userId),
+            gte(symptomEntries.started_at, startDate),
+            lte(symptomEntries.started_at, endDate)
+          )
+        )
+        .orderBy(symptomEntries.started_at);
+
+      // Get meal history
+      const meals = await db
+        .select()
+        .from(mealEntries)
+        .where(
+          and(
+            eq(mealEntries.user_id, userId),
+            gte(mealEntries.meal_time, startDate),
+            lte(mealEntries.meal_time, endDate)
+          )
+        )
+        .orderBy(mealEntries.meal_time);
+
+      // Calculate symptom patterns
+      const symptomPatterns = calculateSymptomPatterns(symptoms);
+
+      // Calculate food frequency
+      const foodFrequency = await calculateFoodFrequency(userId, meals);
+
+      // Extract recommendations from analyses
+      const recommendations = extractRecommendations(analyses);
+
+      // Calculate improvement trend
+      const improvementTrend = calculateImprovementTrend(symptoms);
+
+      const insights = {
+        summary: {
+          total_symptoms: symptoms.length,
+          total_meals: meals.length,
+          total_analyses: analyses.length,
+          avg_symptom_severity: symptoms.length > 0
+            ? symptoms.reduce((sum, s) => sum + s.severity, 0) / symptoms.length
+            : 0,
+          symptom_free_days: calculateSymptomFreeDays(symptoms, parseInt(days as string)),
+        },
+        symptom_patterns: symptomPatterns,
+        food_frequency: foodFrequency,
+        recommendations,
+        improvement_trend: improvementTrend,
+        generated_at: new Date().toISOString(),
+      };
+
+      res.status(200).json({
+        success: true,
+        data: insights,
+      });
+
+    } catch (error) {
+      console.error('Failed to generate insights:', error);
+      next(error);
+    }
+  }
+);
+
+/**
  * GET /api/analytics/health-check
- * 
+ *
  * Health check for analytics service
  */
 router.get('/health-check', async (req, res) => {
@@ -460,10 +550,164 @@ router.get('/health-check', async (req, res) => {
   });
 });
 
+// Helper functions for insights calculations
+function calculateSymptomPatterns(symptoms: any[]) {
+  if (symptoms.length === 0) {
+    return {
+      most_common_type: null,
+      avg_severity: 0,
+      time_of_day_pattern: {},
+      day_of_week_pattern: {},
+    };
+  }
+
+  // Type frequency
+  const typeCount: Record<string, number> = {};
+  symptoms.forEach(s => {
+    typeCount[s.type] = (typeCount[s.type] || 0) + 1;
+  });
+  const mostCommonType = Object.entries(typeCount).sort(([,a], [,b]) => b - a)[0]?.[0];
+
+  // Time of day pattern
+  const timePattern: Record<string, number> = { morning: 0, afternoon: 0, evening: 0, night: 0 };
+  symptoms.forEach(s => {
+    const hour = new Date(s.started_at).getHours();
+    if (hour >= 6 && hour < 12) timePattern.morning++;
+    else if (hour >= 12 && hour < 18) timePattern.afternoon++;
+    else if (hour >= 18 && hour < 22) timePattern.evening++;
+    else timePattern.night++;
+  });
+
+  // Day of week pattern
+  const dayPattern: Record<string, number> = {};
+  const dayNames = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
+  symptoms.forEach(s => {
+    const day = dayNames[new Date(s.started_at).getDay()];
+    dayPattern[day] = (dayPattern[day] || 0) + 1;
+  });
+
+  return {
+    most_common_type: mostCommonType,
+    avg_severity: symptoms.reduce((sum, s) => sum + s.severity, 0) / symptoms.length,
+    time_of_day_pattern: timePattern,
+    day_of_week_pattern: dayPattern,
+    type_distribution: typeCount,
+  };
+}
+
+async function calculateFoodFrequency(userId: number, meals: any[]) {
+  if (meals.length === 0) {
+    return {
+      most_eaten_foods: [],
+      total_unique_foods: 0,
+    };
+  }
+
+  const foodCount: Record<string, { count: number; food_name: string; food_id: number }> = {};
+
+  // Get all foods from meals
+  for (const meal of meals) {
+    const mealFoodItems = await db
+      .select({
+        food: foods,
+        mealFood: mealFoods,
+      })
+      .from(mealFoods)
+      .innerJoin(foods, eq(mealFoods.food_id, foods.id))
+      .where(eq(mealFoods.meal_id, meal.id));
+
+    mealFoodItems.forEach(item => {
+      const key = item.food.id.toString();
+      if (foodCount[key]) {
+        foodCount[key].count++;
+      } else {
+        foodCount[key] = {
+          count: 1,
+          food_name: item.food.name_no,
+          food_id: item.food.id,
+        };
+      }
+    });
+  }
+
+  const sortedFoods = Object.values(foodCount)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  return {
+    most_eaten_foods: sortedFoods,
+    total_unique_foods: Object.keys(foodCount).length,
+  };
+}
+
+function extractRecommendations(analyses: any[]) {
+  const allFoodsToAvoid = new Set<string>();
+  const allFoodsToRetry = new Set<string>();
+  const allSuggestions: string[] = [];
+
+  analyses.forEach(analysis => {
+    analysis.foods_to_avoid?.forEach((food: string) => allFoodsToAvoid.add(food));
+    analysis.foods_to_retry?.forEach((food: string) => allFoodsToRetry.add(food));
+    analysis.improvement_suggestions?.forEach((suggestion: string) => {
+      if (!allSuggestions.includes(suggestion)) {
+        allSuggestions.push(suggestion);
+      }
+    });
+  });
+
+  return {
+    foods_to_avoid: Array.from(allFoodsToAvoid).slice(0, 10),
+    foods_to_retry: Array.from(allFoodsToRetry).slice(0, 5),
+    suggestions: allSuggestions.slice(0, 5),
+  };
+}
+
+function calculateImprovementTrend(symptoms: any[]) {
+  if (symptoms.length < 2) {
+    return {
+      trend: 'insufficient_data',
+      change_percent: 0,
+    };
+  }
+
+  // Split symptoms into first half and second half
+  const midpoint = Math.floor(symptoms.length / 2);
+  const firstHalf = symptoms.slice(0, midpoint);
+  const secondHalf = symptoms.slice(midpoint);
+
+  const firstAvgSeverity = firstHalf.reduce((sum, s) => sum + s.severity, 0) / firstHalf.length;
+  const secondAvgSeverity = secondHalf.reduce((sum, s) => sum + s.severity, 0) / secondHalf.length;
+
+  const changePercent = ((secondAvgSeverity - firstAvgSeverity) / firstAvgSeverity) * 100;
+
+  let trend = 'stable';
+  if (changePercent < -10) trend = 'improving';
+  else if (changePercent > 10) trend = 'worsening';
+
+  return {
+    trend,
+    change_percent: changePercent,
+    first_period_avg: firstAvgSeverity,
+    second_period_avg: secondAvgSeverity,
+  };
+}
+
+function calculateSymptomFreeDays(symptoms: any[], totalDays: number): number {
+  if (symptoms.length === 0) return totalDays;
+
+  const symptomDates = new Set<string>();
+  symptoms.forEach(s => {
+    const date = new Date(s.started_at).toISOString().split('T')[0];
+    symptomDates.add(date);
+  });
+
+  return totalDays - symptomDates.size;
+}
+
 // Helper functions for aggregating research data
 function extractCommonTriggers(analyses: any[]): Record<string, number> {
   const triggerCounts: Record<string, number> = {};
-  
+
   analyses.forEach(analysis => {
     analysis.likely_food_triggers.forEach((trigger: any) => {
       if (trigger.confidence_level === 'high') {
@@ -471,7 +715,7 @@ function extractCommonTriggers(analyses: any[]): Record<string, number> {
       }
     });
   });
-  
+
   // Return top 10 most common triggers
   return Object.fromEntries(
     Object.entries(triggerCounts)
