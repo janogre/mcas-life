@@ -9,6 +9,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 // Import services (new microservices architecture)
 import { authRoutes, authenticateToken } from './services/auth/index.js';
+import adminRoutes from './services/auth/adminRoutes.js';
 import { foodRoutes } from './services/food/foodRoutes.js';
 import userRecipeRoutes from './services/food/userRecipeRoutes.js';
 import { analyticsRoutes } from './services/analytics/analyticsRoutes.js';
@@ -105,6 +106,7 @@ if (process.env['NODE_ENV'] !== 'test') {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes); // Admin user management (requires admin role)
 app.use('/api/foods', foodRoutes); // Food management and approved foods
 app.use('/api/user-recipes', userRecipeRoutes); // User-created custom recipes with MCAS analysis
 app.use('/api/analytics', analyticsRoutes); // AI-driven correlation analysis and trigger detection
@@ -134,6 +136,7 @@ app.get('/', (req, res) => {
     endpoints: [
       '/api/health',
       '/api/auth',
+      '/api/admin',
       '/api/foods',
       '/api/user-recipes',
       '/api/analytics',

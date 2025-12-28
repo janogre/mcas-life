@@ -156,6 +156,22 @@ export function Header() {
                     <User className="w-4 h-4" />
                     <span>Profile</span>
                   </Link>
+
+                  {/* Admin link - only show for admin users */}
+                  {user?.role === 'admin' && (
+                    <>
+                      <hr className="my-1" />
+                      <Link
+                        to="/admin"
+                        className="flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium"
+                        onClick={() => setShowMobileMenu(false)}
+                      >
+                        <Shield className="w-4 h-4" />
+                        <span>Brukeradmin</span>
+                      </Link>
+                    </>
+                  )}
+
                   <hr className="my-1" />
                   <button
                     onClick={handleLogout}

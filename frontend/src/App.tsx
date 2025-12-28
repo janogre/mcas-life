@@ -37,6 +37,7 @@ import { MedicationAddPage } from './pages/Medications/MedicationAddPage';
 import { ActivityAddPage } from './pages/Activities/ActivityAddPage';
 import { IllnessAddPage } from './pages/Illness/IllnessAddPage';
 import { MealAddPage } from './pages/Meals/MealAddPage';
+import { AdminPage } from './pages/Admin/AdminPage';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -310,6 +311,18 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MealAddPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Admin routes (requires admin role) */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <AdminPage />
+                    </Layout>
                   </ProtectedRoute>
                 }
               />

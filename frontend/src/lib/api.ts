@@ -1105,4 +1105,94 @@ export const userRecipesApi = {
   },
 };
 
+// Admin API (requires admin role)
+export const adminApi = {
+  /**
+   * List all users with pagination and filtering
+   */
+  listUsers: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+    status?: string;
+  }) => {
+    const response = await api.get('/admin/users', { params });
+    return response.data.data;
+  },
+
+  /**
+   * Get user statistics
+   */
+  getUserStats: async () => {
+    const response = await api.get('/admin/users/stats');
+    return response.data.data;
+  },
+
+  /**
+   * Get single user by ID
+   */
+  getUserById: async (id: number) => {
+    const response = await api.get(`/admin/users/${id}`);
+    return response.data.data;
+  },
+
+  /**
+   * Create new user
+   */
+  createUser: async (data: {
+    email: string;
+    username: string;
+    password: string;
+    first_name?: string;
+    last_name?: string;
+    role?: 'patient' | 'expert' | 'researcher' | 'admin';
+  }) => {
+    const response = await api.post('/admin/users', data);
+    return response.data.data;
+  },
+
+  /**
+   * Update user role
+   */
+  updateUserRole: async (id: number, role: 'patient' | 'expert' | 'researcher' | 'admin') => {
+    const response = await api.put(`/admin/users/${id}/role`, { role });
+    return response.data;
+  },
+
+  /**
+   * Update user status
+   */
+  updateUserStatus: async (id: number, status: 'active' | 'suspended' | 'deleted') => {
+    const response = await api.put(`/admin/users/${id}/status`, { status });
+    return response.data;
+  },
+
+  /**
+   * Verify user email manually
+   */
+  verifyUserEmail: async (id: number) => {
+    const response = await api.post(`/admin/users/${id}/verify-email`);
+    return response.data;
+  },
+
+  /**
+   * Reset user password
+   */
+  resetUserPassword: async (id: number, newPassword: string) => {
+    const response = await api.post(`/admin/users/${id}/reset-password`, {
+      new_password: newPassword
+    });
+    return response.data;
+  },
+
+  /**
+   * Delete user permanently
+   */
+  deleteUser: async (id: number) => {
+    const response = await api.delete(`/admin/users/${id}`);
+    return response.data;
+  },
+};
+
 export default api;
