@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Activity,
   Brain,
@@ -6,7 +6,6 @@ import {
   TrendingUp,
   AlertCircle,
   Search,
-  Plus,
   Calendar,
   BarChart3,
   Sparkles,
@@ -15,39 +14,90 @@ import {
   Pill,
   ArrowRight,
   Target,
-  Lightbulb
+  Lightbulb,
+  Circle,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDate } from '../../lib/utils';
 import { ProgressEncouragement } from '../../components/UI/ProgressEncouragement';
+import { getDashboardData, DashboardData } from '../../services/dashboardApi';
 import './dashboard-animations.css';
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const quickStats = [
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getDashboardData();
+      setDashboardData(data);
+    } catch (err) {
+      console.error('Error loading dashboard:', err);
+      setError('Kunne ikke laste dashboard-data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getIconComponent = (iconName: string) => {
+    const icons: Record<string, any> = {
+      Utensils,
+      AlertCircle,
+      Pill,
+      Heart,
+      Activity,
+      Brain,
+      Circle
+    };
+    return icons[iconName] || Circle;
+  };
+
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const then = new Date(timestamp);
+    const diffMs = now.getTime() - then.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} timer siden`;
+    if (diffDays === 1) return 'I går';
+    return `${diffDays} dager siden`;
+  };
+
+  const quickStats = dashboardData ? [
     {
       label: 'Symptoms This Week',
-      value: '3',
-      change: '-2 from last week',
-      trend: 'down',
+      value: dashboardData.stats.symptomsThisWeek.toString(),
+      change: `${dashboardData.stats.symptomsThisWeek - dashboardData.stats.symptomsLastWeek >= 0 ? '+' : ''}${dashboardData.stats.symptomsThisWeek - dashboardData.stats.symptomsLastWeek} from last week`,
+      trend: dashboardData.stats.symptomsThisWeek < dashboardData.stats.symptomsLastWeek ? 'down' : dashboardData.stats.symptomsThisWeek > dashboardData.stats.symptomsLastWeek ? 'up' : 'neutral',
       icon: AlertCircle,
       color: 'var(--color-alert-red)',
       bgGradient: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
     },
     {
       label: 'Foods Tracked',
-      value: '28',
-      change: '+12 this week',
-      trend: 'up',
+      value: dashboardData.stats.foodsTrackedThisWeek.toString(),
+      change: `${dashboardData.stats.foodsTrackedThisWeek - dashboardData.stats.foodsTrackedLastWeek >= 0 ? '+' : ''}${dashboardData.stats.foodsTrackedThisWeek - dashboardData.stats.foodsTrackedLastWeek} this week`,
+      trend: dashboardData.stats.foodsTrackedThisWeek > dashboardData.stats.foodsTrackedLastWeek ? 'up' : dashboardData.stats.foodsTrackedThisWeek < dashboardData.stats.foodsTrackedLastWeek ? 'down' : 'neutral',
       icon: Search,
       color: 'var(--color-medical-600)',
       bgGradient: 'linear-gradient(135deg, var(--color-medical-50) 0%, var(--color-medical-100) 100%)',
     },
     {
       label: 'AI Analyses',
-      value: '2',
-      change: 'Last: 2 days ago',
+      value: dashboardData.stats.analysesCount.toString(),
+      change: dashboardData.stats.lastAnalysisDate ? `Last: ${formatTimeAgo(dashboardData.stats.lastAnalysisDate)}` : 'No analyses yet',
       trend: 'neutral',
       icon: Brain,
       color: '#7c3aed',
@@ -55,45 +105,14 @@ export function DashboardPage() {
     },
     {
       label: 'Trigger Score',
-      value: '7.2/10',
-      change: '+0.5 this week',
-      trend: 'up',
+      value: dashboardData.stats.triggerScore !== null ? `${dashboardData.stats.triggerScore}/10` : 'N/A',
+      change: dashboardData.stats.triggerScore !== null ? `${dashboardData.stats.triggerScoreChange >= 0 ? '+' : ''}${dashboardData.stats.triggerScoreChange} this week` : 'Not enough data',
+      trend: dashboardData.stats.triggerScoreChange > 0 ? 'up' : dashboardData.stats.triggerScoreChange < 0 ? 'down' : 'neutral',
       icon: TrendingUp,
       color: 'var(--color-alert-amber)',
       bgGradient: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
     },
-  ];
-
-  const recentActivities = [
-    {
-      type: 'symptom',
-      title: 'Skin rash logged',
-      time: '2 hours ago',
-      severity: 'medium',
-      icon: AlertCircle,
-    },
-    {
-      type: 'food',
-      title: 'Spinach added to diary',
-      time: '4 hours ago',
-      severity: 'safe',
-      icon: Search,
-    },
-    {
-      type: 'analysis',
-      title: 'AI trigger analysis completed',
-      time: 'Yesterday',
-      severity: 'high',
-      icon: Brain,
-    },
-    {
-      type: 'food',
-      title: 'Blue cheese marked incompatible',
-      time: '2 days ago',
-      severity: 'severe',
-      icon: Heart,
-    },
-  ];
+  ] : [];
 
   const getSeverityStyles = (severity: string) => {
     switch (severity) {
@@ -129,6 +148,35 @@ export function DashboardPage() {
         };
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary-500" />
+          <p className="text-gray-600">Laster dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+          <AlertCircle className="w-8 h-8 text-red-500 mb-3" />
+          <h3 className="text-lg font-semibold text-red-900 mb-2">Kunne ikke laste data</h3>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button
+            onClick={loadDashboardData}
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+          >
+            Prøv igjen
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-8">
@@ -591,77 +639,86 @@ export function DashboardPage() {
             }}>
               Recent Activity
             </h2>
-            <button style={{
-              color: 'var(--color-medical-600)',
-              fontSize: '0.9rem',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-              transition: 'color 0.2s ease',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-            }}>
+            <button
+              onClick={() => window.location.href = '/log'}
+              style={{
+                color: 'var(--color-medical-600)',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                transition: 'color 0.2s ease',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
               View all
               <ArrowUpRight style={{ width: '16px', height: '16px' }} />
             </button>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {recentActivities.map((activity, index) => {
-              const Icon = activity.icon;
-              const styles = getSeverityStyles(activity.severity);
-              return (
-                <div
-                  key={index}
-                  className="activity-item"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1rem',
-                    padding: '1rem',
-                    borderRadius: '0.875rem',
-                    transition: 'all 0.3s ease',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <div style={{
-                    width: '44px',
-                    height: '44px',
-                    background: styles.bg,
-                    borderRadius: '0.75rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: `1.5px solid ${styles.border}`,
-                    flexShrink: 0,
-                  }}>
-                    <Icon style={{ width: '20px', height: '20px', color: styles.text }} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{
-                      fontSize: '0.95rem',
-                      fontWeight: 600,
-                      color: 'var(--color-sage-900)',
-                      marginBottom: '0.25rem',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
+            {dashboardData && dashboardData.recentActivities.length > 0 ? (
+              dashboardData.recentActivities.slice(0, 5).map((activity) => {
+                const Icon = getIconComponent(activity.icon);
+                const styles = getSeverityStyles(activity.severity || 'safe');
+                return (
+                  <div
+                    key={activity.id}
+                    className="activity-item"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1rem',
+                      padding: '1rem',
+                      borderRadius: '0.875rem',
+                      transition: 'all 0.3s ease',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{
+                      width: '44px',
+                      height: '44px',
+                      background: styles.bg,
+                      borderRadius: '0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: `1.5px solid ${styles.border}`,
+                      flexShrink: 0,
                     }}>
-                      {activity.title}
-                    </p>
-                    <p style={{
-                      fontSize: '0.8rem',
-                      color: 'var(--color-sage-500)',
-                      fontWeight: 500
-                    }}>
-                      {activity.time}
-                    </p>
+                      <Icon style={{ width: '20px', height: '20px', color: styles.text }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        color: 'var(--color-sage-900)',
+                        marginBottom: '0.25rem',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {activity.title}
+                      </p>
+                      <p style={{
+                        fontSize: '0.8rem',
+                        color: 'var(--color-sage-500)',
+                        fontWeight: 500
+                      }}>
+                        {formatTimeAgo(activity.timestamp)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Ingen aktivitet ennå. Start med å legge til måltider eller symptomer!</p>
+              </div>
+            )}
           </div>
         </div>
 
