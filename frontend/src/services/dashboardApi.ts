@@ -63,8 +63,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       }
     });
 
-    console.log('📊 Diary entries this week response:', diaryEntriesThisWeek.data);
-
     // Count unique foods this week
     const foodsThisWeek = new Set<number>();
     const entriesThisWeek = Array.isArray(diaryEntriesThisWeek.data?.data)
@@ -148,7 +146,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     };
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
-    console.error('Error details:', error instanceof Error ? error.message : error);
     throw error;
   }
 }
@@ -168,8 +165,6 @@ export async function getRecentActivities(limit = 10): Promise<RecentActivity[]>
         limit
       }
     });
-
-    console.log('📋 Recent activities response:', response.data);
 
     // Handle different response structures
     const entries = Array.isArray(response.data?.data)

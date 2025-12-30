@@ -27,10 +27,13 @@ export function ProgressEncouragement({ compact = false }: ProgressEncouragement
   const loadStats = async () => {
     try {
       setLoading(true);
-      const [meals, symptoms] = await Promise.all([
-        mealsApi.getMeals({ limit: 1000 }), // Get all meals to count
+      const [mealsResponse, symptomsResponse] = await Promise.all([
+        mealsApi.getMealHistory({ limit: 1000 }), // Get all meals to count
         symptomsApi.getRecent(30), // Last 30 days
       ]);
+
+      const meals = mealsResponse || [];
+      const symptoms = symptomsResponse || [];
 
       setStats({
         mealCount: meals.length,
@@ -39,6 +42,12 @@ export function ProgressEncouragement({ compact = false }: ProgressEncouragement
       });
     } catch (error) {
       console.error('Failed to load progress stats:', error);
+      // Set default stats on error
+      setStats({
+        mealCount: 0,
+        symptomCount: 0,
+        daysTracking: 0,
+      });
     } finally {
       setLoading(false);
     }
