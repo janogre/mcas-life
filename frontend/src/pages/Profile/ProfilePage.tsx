@@ -3,11 +3,13 @@ import { User, Settings, Shield, Bell, Download, LogOut, MapPin, Brain, Sparkles
 import { useAuth } from '../../contexts/AuthContext';
 import { LocationSelector } from '../../components/Settings/LocationSelector';
 import { AirthingsAdmin } from '../../components/Settings/AirthingsAdmin';
+import { ChangePasswordModal } from '../../components/Profile/ChangePasswordModal';
 import api from '../../lib/api';
 
 export function ProfilePage() {
   const { user, logout } = useAuth();
   const [showLocationSelector, setShowLocationSelector] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [analysisMode, setAnalysisMode] = useState<'smart' | 'ai'>('smart');
   const [loadingAnalysisMode, setLoadingAnalysisMode] = useState(true);
   const [currentLocation, setCurrentLocation] = useState({
@@ -305,7 +307,10 @@ export function ProfilePage() {
               <div className="text-sm text-gray-600">Update severity level and diagnosis information</div>
             </button>
             
-            <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => setShowChangePassword(true)}
+              className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <div className="font-medium text-gray-900">Password & Security</div>
               <div className="text-sm text-gray-600">Change password and security settings</div>
             </button>
@@ -415,6 +420,12 @@ export function ProfilePage() {
           Deleting your account will permanently remove all your data and cannot be undone.
         </p>
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+      />
     </div>
   );
 }
