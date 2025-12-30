@@ -63,29 +63,37 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       }
     });
 
+    console.log('📊 Diary entries this week response:', diaryEntriesThisWeek.data);
+
     // Count unique foods this week
     const foodsThisWeek = new Set<number>();
-    if (diaryEntriesThisWeek.data?.data) {
-      diaryEntriesThisWeek.data.data.forEach((entry: any) => {
-        entry.data?.foods?.forEach((food: any) => {
-          if (food.sighi_id) {
-            foodsThisWeek.add(food.sighi_id);
-          }
-        });
+    const entriesThisWeek = Array.isArray(diaryEntriesThisWeek.data?.data)
+      ? diaryEntriesThisWeek.data.data
+      : (diaryEntriesThisWeek.data?.entries || []);
+
+    entriesThisWeek.forEach((entry: any) => {
+      const foods = entry.data?.foods || entry.foods || [];
+      foods.forEach((food: any) => {
+        if (food.sighi_id || food.food_id) {
+          foodsThisWeek.add(food.sighi_id || food.food_id);
+        }
       });
-    }
+    });
 
     // Count unique foods last week
     const foodsLastWeek = new Set<number>();
-    if (diaryEntriesLastWeek.data?.data) {
-      diaryEntriesLastWeek.data.data.forEach((entry: any) => {
-        entry.data?.foods?.forEach((food: any) => {
-          if (food.sighi_id) {
-            foodsLastWeek.add(food.sighi_id);
-          }
-        });
+    const entriesLastWeek = Array.isArray(diaryEntriesLastWeek.data?.data)
+      ? diaryEntriesLastWeek.data.data
+      : (diaryEntriesLastWeek.data?.entries || []);
+
+    entriesLastWeek.forEach((entry: any) => {
+      const foods = entry.data?.foods || entry.foods || [];
+      foods.forEach((food: any) => {
+        if (food.sighi_id || food.food_id) {
+          foodsLastWeek.add(food.sighi_id || food.food_id);
+        }
       });
-    }
+    });
 
     // Get correlation/analysis data
     let analysesCount = 0;
@@ -140,6 +148,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     };
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
+    console.error('Error details:', error instanceof Error ? error.message : error);
     throw error;
   }
 }
@@ -160,11 +169,18 @@ export async function getRecentActivities(limit = 10): Promise<RecentActivity[]>
       }
     });
 
-    if (!response.data?.data) {
+    console.log('📋 Recent activities response:', response.data);
+
+    // Handle different response structures
+    const entries = Array.isArray(response.data?.data)
+      ? response.data.data
+      : (response.data?.entries || []);
+
+    if (!Array.isArray(entries) || entries.length === 0) {
       return [];
     }
 
-    const activities: RecentActivity[] = response.data.data.map((entry: any) => {
+    const activities: RecentActivity[] = entries.map((entry: any) => {
       const activity: RecentActivity = {
         id: entry.id,
         type: entry.type,
