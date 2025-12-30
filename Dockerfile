@@ -18,7 +18,8 @@ FROM node:20-alpine AS backend-build
 
 WORKDIR /app/backend
 
-# Copy backend source (no node_modules yet)
+# Copy backend source including package.json
+COPY backend/package*.json ./
 COPY backend/ ./
 
 # ==================== STAGE 3: Runtime ====================
