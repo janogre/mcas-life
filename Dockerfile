@@ -18,11 +18,7 @@ FROM node:20-alpine AS backend-build
 
 WORKDIR /app/backend
 
-# Copy backend package files
-COPY backend/package*.json ./
-RUN npm install
-
-# Copy backend source
+# Copy backend source (no node_modules yet)
 COPY backend/ ./
 
 # ==================== STAGE 3: Runtime ====================
@@ -37,8 +33,14 @@ RUN addgroup -g 1001 mcas && \
 
 WORKDIR /app
 
-# Copy backend from build stage
+# Copy backend source from build stage
 COPY --from=backend-build --chown=mcas:mcas /app/backend ./backend
+
+# Install backend dependencies in runtime (includes tsx, axios, etc.)
+WORKDIR /app/backend
+RUN npm install
+
+WORKDIR /app
 
 # Copy frontend build to nginx html dir
 COPY --from=frontend-build /app/frontend/dist /usr/share/nginx/html
