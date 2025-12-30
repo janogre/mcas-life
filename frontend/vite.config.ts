@@ -21,8 +21,8 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
+            src: 'pwa-128x128.png',
+            sizes: '128x128',
             type: 'image/png'
           },
           {
@@ -48,7 +48,7 @@ export default defineConfig({
         runtimeCaching: [
           // API Cache - Critical MCAS data with network-first strategy
           {
-            urlPattern: /^http:\/\/localhost:3001\/api\/(health|sighi\/foods)/,
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/health') || url.pathname.startsWith('/api/sighi/foods'),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'mcas-api-critical',
@@ -64,7 +64,7 @@ export default defineConfig({
           },
           // Food Database Cache - Long-term caching for SIGHI data
           {
-            urlPattern: /^http:\/\/localhost:3001\/api\/sighi\/foods/,
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/sighi/foods'),
             handler: 'CacheFirst',
             options: {
               cacheName: 'sighi-food-database',
@@ -79,7 +79,7 @@ export default defineConfig({
           },
           // User Data - Network first with background sync
           {
-            urlPattern: /^http:\/\/localhost:3001\/api\/(symptoms|diary|analytics)/,
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/symptoms') || url.pathname.startsWith('/api/diary') || url.pathname.startsWith('/api/analytics'),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'mcas-user-data',
