@@ -625,9 +625,18 @@ export function MealAddPage() {
               </label>
               <input
                 type="datetime-local"
-                value={mealData.meal_time?.toISOString().slice(0, 16) || ''}
-                onChange={(e) => setMealData({ ...mealData, meal_time: new Date(e.target.value) })}
+                value={mealData.meal_time instanceof Date && !isNaN(mealData.meal_time.getTime())
+                  ? mealData.meal_time.toISOString().slice(0, 16)
+                  : new Date().toISOString().slice(0, 16)}
+                onChange={(e) => {
+                  const newDate = new Date(e.target.value);
+                  // Only update if valid date
+                  if (!isNaN(newDate.getTime())) {
+                    setMealData({ ...mealData, meal_time: newDate });
+                  }
+                }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
               />
             </div>
 

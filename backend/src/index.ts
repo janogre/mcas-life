@@ -37,6 +37,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env['PORT'] || 3001;
 
+// Trust proxy - Required when running behind reverse proxy (Traefik)
+// This enables Express to trust X-Forwarded-* headers for accurate client IP identification
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
