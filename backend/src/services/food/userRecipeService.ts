@@ -503,28 +503,9 @@ export class UserRecipeService {
 
     const total = totalResult?.count || 0;
 
-    // Determine order by column
-    const orderFn = order === 'asc' ? asc : desc;
-    let orderByColumn;
-
-    switch (sortBy) {
-      case 'mcas_score':
-        orderByColumn = orderFn(userRecipes.calculated_mcas_score);
-        break;
-      case 'times_made':
-        orderByColumn = orderFn(userRecipes.times_made);
-        break;
-      case 'likes':
-        // For likes, we'll need to join and count
-        orderByColumn = desc(sql`likes_count`);
-        break;
-      case 'created_at':
-      default:
-        orderByColumn = orderFn(userRecipes.created_at);
-        break;
-    }
-
     // Fetch recipes with author info and likes count
+    const likesCountExpr = sql<number>`COALESCE(COUNT(DISTINCT ${recipeLikes.id}), 0)::int`;
+
     const recipesWithMeta = await db
       .select({
         recipe: userRecipes,
@@ -533,14 +514,22 @@ export class UserRecipeService {
           first_name: users.first_name,
           username: users.username
         },
-        likes_count: sql<number>`COALESCE(COUNT(DISTINCT ${recipeLikes.id}), 0)::int`
+        likes_count: likesCountExpr
       })
       .from(userRecipes)
       .innerJoin(users, eq(userRecipes.user_id, users.id))
       .leftJoin(recipeLikes, eq(recipeLikes.recipe_id, userRecipes.id))
       .where(and(...conditions))
       .groupBy(userRecipes.id, users.id, users.first_name, users.username)
-      .orderBy(orderByColumn)
+      .orderBy(
+        sortBy === 'likes'
+          ? (order === 'asc' ? asc(likesCountExpr) : desc(likesCountExpr))
+          : sortBy === 'mcas_score'
+          ? (order === 'asc' ? asc(userRecipes.calculated_mcas_score) : desc(userRecipes.calculated_mcas_score))
+          : sortBy === 'times_made'
+          ? (order === 'asc' ? asc(userRecipes.times_made) : desc(userRecipes.times_made))
+          : (order === 'asc' ? asc(userRecipes.created_at) : desc(userRecipes.created_at))
+      )
       .limit(limit)
       .offset(offset);
 
