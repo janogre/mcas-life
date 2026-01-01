@@ -1031,6 +1031,34 @@ export const userRecipes = pgTable('user_recipes', {
   ingredientsGinIdx: index('user_recipes_ingredients_gin_idx').on(table.ingredients)
 }));
 
+// Recipe Likes - Track user likes on shared recipes
+export const recipeLikes = pgTable('recipe_likes', {
+  id: serial('id').primaryKey(),
+  user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  recipe_id: integer('recipe_id').notNull().references(() => userRecipes.id, { onDelete: 'cascade' }),
+
+  created_at: timestamp('created_at').notNull().defaultNow()
+}, (table) => ({
+  userRecipeIdx: uniqueIndex('recipe_likes_user_recipe_idx').on(table.user_id, table.recipe_id),
+  userIdIdx: index('recipe_likes_user_id_idx').on(table.user_id),
+  recipeIdIdx: index('recipe_likes_recipe_id_idx').on(table.recipe_id)
+}));
+
+// Recipe Saves - Track when users save (copy) shared recipes
+export const recipeSaves = pgTable('recipe_saves', {
+  id: serial('id').primaryKey(),
+  user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  original_recipe_id: integer('original_recipe_id').references(() => userRecipes.id, { onDelete: 'set null' }),
+  saved_recipe_id: integer('saved_recipe_id').notNull().references(() => userRecipes.id, { onDelete: 'cascade' }),
+
+  created_at: timestamp('created_at').notNull().defaultNow()
+}, (table) => ({
+  userOriginalIdx: uniqueIndex('recipe_saves_user_original_idx').on(table.user_id, table.original_recipe_id),
+  userIdIdx: index('recipe_saves_user_id_idx').on(table.user_id),
+  originalIdIdx: index('recipe_saves_original_idx').on(table.original_recipe_id),
+  savedIdIdx: index('recipe_saves_saved_idx').on(table.saved_recipe_id)
+}));
+
 // Note: Zod validation schemas will be added when drizzle-zod compatibility is resolved
 
 // Export all table types for use in services
@@ -1059,5 +1087,9 @@ export type NewMealEntry = typeof mealEntries.$inferInsert;
 export type MealFood = typeof mealFoods.$inferSelect;
 export type NewMealFood = typeof mealFoods.$inferInsert;
 export type UserRecipe = typeof userRecipes.$inferSelect;
-export type NewUserRecipe = typeof userRecipes.$inferInsert; 
+export type NewUserRecipe = typeof userRecipes.$inferInsert;
+export type RecipeLike = typeof recipeLikes.$inferSelect;
+export type NewRecipeLike = typeof recipeLikes.$inferInsert;
+export type RecipeSave = typeof recipeSaves.$inferSelect;
+export type NewRecipeSave = typeof recipeSaves.$inferInsert; 
 

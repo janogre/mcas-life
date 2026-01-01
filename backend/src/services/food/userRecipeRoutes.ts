@@ -74,6 +74,11 @@ const calculatePortionsSchema = z.object({
     .max(20, 'Maksimum porsjoner er 20')
 });
 
+// Sharing feature schema
+const toggleSharingSchema = z.object({
+  is_public: z.boolean()
+});
+
 // Middleware for validating request body
 const validateBody = (schema: z.ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -315,6 +320,39 @@ router.post(
         ingredients: portionIngredients
       });
     } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// ==================== SHARING FEATURE ROUTE ====================
+
+/**
+ * PUT /api/user-recipes/:id/sharing
+ * Toggle recipe sharing (public/private)
+ */
+router.put(
+  '/:id/sharing',
+  validateBody(toggleSharingSchema),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user!.userId;
+      const recipeId = parseInt(req.params.id, 10);
+
+      if (isNaN(recipeId)) {
+        return res.status(400).json({ error: 'Ugyldig oppskrift-ID' });
+      }
+
+      const recipe = await userRecipeService.toggleRecipeSharing(recipeId, userId, req.body.is_public);
+
+      res.json({
+        message: req.body.is_public ? 'Oppskrift er nå offentlig' : 'Oppskrift er nå privat',
+        recipe
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Recipe not found') {
+        return res.status(404).json({ error: 'Oppskrift ikke funnet' });
+      }
       next(error);
     }
   }
