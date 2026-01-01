@@ -41,7 +41,7 @@ export function FloatingActionButton({ onClick, className = '' }: FABProps) {
         style={{
           position: 'fixed',
           bottom: 'calc(var(--space-4) + 60px)', // Above bottom nav on mobile
-          right: 'var(--space-4)',
+          right: 'max(var(--space-4), env(safe-area-inset-right))',
           width: '56px',
           height: '56px',
           borderRadius: '50%',
