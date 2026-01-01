@@ -16,7 +16,11 @@ import type {
   CreateRecipeInput,
   UpdateRecipeInput,
   RecipePortionCalculation,
-  LogMealFromRecipeInput
+  LogMealFromRecipeInput,
+  CommunityRecipesParams,
+  CommunityRecipesResponse,
+  UserPublicRecipesResponse,
+  RecipeExtendedInfo
 } from '../types/shared';
 
 // API client configuration - Use environment variable
@@ -1101,6 +1105,64 @@ export const userRecipesApi = {
    */
   incrementTimesMade: async (id: number): Promise<{ message: string }> => {
     const response = await api.post(`/user-recipes/${id}/increment-made`);
+    return response.data;
+  },
+
+  // ==================== SHARING FEATURE METHODS ====================
+
+  /**
+   * Toggle recipe sharing (public/private)
+   */
+  toggleSharing: async (id: number, isPublic: boolean): Promise<{ message: string; recipe: UserRecipe }> => {
+    const response = await api.put(`/user-recipes/${id}/sharing`, { is_public: isPublic });
+    return response.data;
+  },
+
+  /**
+   * Get community recipes with pagination and filtering
+   */
+  getCommunityRecipes: async (params?: CommunityRecipesParams): Promise<CommunityRecipesResponse> => {
+    const response = await api.get('/recipes/community', { params });
+    return response.data;
+  },
+
+  /**
+   * Get user's public recipes (for profile page)
+   */
+  getUserPublicRecipes: async (userId: number, page = 1, limit = 20): Promise<UserPublicRecipesResponse> => {
+    const response = await api.get(`/recipes/users/${userId}`, { params: { page, limit } });
+    return response.data;
+  },
+
+  /**
+   * Like a recipe
+   */
+  likeRecipe: async (id: number): Promise<{ message: string; liked: boolean; likes_count: number }> => {
+    const response = await api.post(`/recipes/${id}/like`);
+    return response.data;
+  },
+
+  /**
+   * Unlike a recipe
+   */
+  unlikeRecipe: async (id: number): Promise<{ message: string; liked: boolean; likes_count: number }> => {
+    const response = await api.delete(`/recipes/${id}/like`);
+    return response.data;
+  },
+
+  /**
+   * Save (copy) a shared recipe to user's collection
+   */
+  saveCopy: async (id: number): Promise<{ message: string; saved_recipe: UserRecipe }> => {
+    const response = await api.post(`/recipes/${id}/save-copy`);
+    return response.data;
+  },
+
+  /**
+   * Get recipe with extended info (likes, saved status, author)
+   */
+  getRecipeWithExtendedInfo: async (id: number): Promise<RecipeExtendedInfo> => {
+    const response = await api.get(`/recipes/${id}/public`);
     return response.data;
   },
 };

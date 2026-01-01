@@ -441,3 +441,46 @@ export interface LogMealFromRecipeInput {
   dao_minutes_before?: number;
   notes?: string;
 }
+
+// ==================== SHARED RECIPES TYPES ====================
+
+export interface RecipeAuthor {
+  id: number;
+  first_name: string;
+  username?: string;
+}
+
+export interface UserRecipeWithAuthor extends UserRecipe {
+  author: RecipeAuthor;
+  likes_count: number;
+  is_liked?: boolean; // Only when current user context exists
+}
+
+export interface RecipeExtendedInfo {
+  recipe: UserRecipe;
+  author: RecipeAuthor;
+  likes_count: number;
+  is_liked_by_current_user: boolean;
+  is_saved_by_current_user: boolean;
+}
+
+export interface CommunityRecipesParams {
+  sortBy?: 'created_at' | 'mcas_score' | 'likes' | 'times_made';
+  order?: 'asc' | 'desc';
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface CommunityRecipesResponse {
+  recipes: UserRecipeWithAuthor[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface UserPublicRecipesResponse {
+  recipes: UserRecipe[];
+  user: RecipeAuthor;
+  total: number;
+}
