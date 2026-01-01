@@ -7,7 +7,7 @@
 
 import * as bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { eq, desc, sql, and, or, like, ilike } from 'drizzle-orm';
+import { eq, desc, sql, and, or, like, ilike, gte } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { users, mcasProfiles, userPreferences, userSessions } from '../../db/schema.js';
 
@@ -402,7 +402,7 @@ export class AdminService {
     const recentResult = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(users)
-      .where(sql`${users.created_at} >= ${sevenDaysAgo}`);
+      .where(gte(users.created_at, sevenDaysAgo));
 
     return {
       total: totalResult[0]?.count || 0,
