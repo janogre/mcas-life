@@ -28,6 +28,7 @@ import { UserRecipesPage } from './pages/Recipes/UserRecipesPage';
 import { RecipeCreatePage } from './pages/Recipes/RecipeCreatePage';
 import { RecipeEditPage } from './pages/Recipes/RecipeEditPage';
 import { RecipeDetailPage } from './pages/Recipes/RecipeDetailPage';
+import { UserRecipeProfilePage } from './pages/Recipes/UserRecipeProfilePage';
 import { AnalyticsPage } from './pages/Analytics/AnalyticsPage';
 import { ProfilePage } from './pages/Profile/ProfilePage';
 import { DiaryPage } from './pages/Diary/DiaryPage';
@@ -228,6 +229,16 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <RecipeDetailPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/users/:userId/recipes"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <UserRecipeProfilePage />
                     </Layout>
                   </ProtectedRoute>
                 }

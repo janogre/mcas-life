@@ -58,6 +58,7 @@ export function RecipeCreatePage() {
   // Step 3: Instructions
   const [instructions, setInstructions] = useState('');
   const [notes, setNotes] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
 
   // Submission state
   const [submitting, setSubmitting] = useState(false);
@@ -191,7 +192,8 @@ export function RecipeCreatePage() {
           custom_name: ing.custom_name
         })),
         instructions: instructions.trim() || undefined,
-        notes: notes.trim() || undefined
+        notes: notes.trim() || undefined,
+        is_public: isPublic
       };
 
       const response = await userRecipesApi.create(recipeData);
@@ -500,6 +502,26 @@ export function RecipeCreatePage() {
                 rows={3}
                 maxLength={1000}
               />
+            </div>
+
+            {/* Sharing option */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <label className="flex items-start space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isPublic}
+                  onChange={(e) => setIsPublic(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-gray-900">
+                    Del med fellesskapet
+                  </div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    Gjør oppskriften offentlig slik at andre MCAS-pasienter kan se og lagre den. Du kan endre dette senere.
+                  </div>
+                </div>
+              </label>
             </div>
 
             {/* Recipe summary */}

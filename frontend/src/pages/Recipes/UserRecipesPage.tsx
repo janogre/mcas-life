@@ -3,35 +3,88 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import { Plus, Clock, Users, TrendingUp, Search, Filter } from 'lucide-react';
 import { userRecipesApi } from '../../lib/api';
-import type { UserRecipe } from '../../types/shared';
+import type { UserRecipe, UserRecipeWithAuthor } from '../../types/shared';
+import { SharedRecipeCard } from '../../components/Recipes/SharedRecipeCard';
+import { RecipeSharingToggle } from '../../components/Recipes/RecipeSharingToggle';
+
+type TabType = 'my-recipes' | 'community';
 
 export function UserRecipesPage() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = React.useState<TabType>('my-recipes');
   const [searchTerm, setSearchTerm] = React.useState('');
   const [sortBy, setSortBy] = React.useState<'created_at' | 'times_made' | 'mcas_score'>('created_at');
   const [order, setOrder] = React.useState<'asc' | 'desc'>('desc');
 
-  // Fetch user recipes
-  const { data, isLoading, error, refetch } = useQuery(
+  // Fetch user's own recipes
+  const { data: myRecipesData, isLoading: myRecipesLoading, error: myRecipesError, refetch: refetchMyRecipes } = useQuery(
     ['user-recipes', sortBy, order],
     () => userRecipesApi.getAll({ sortBy, order }),
     {
       staleTime: 30000, // 30 seconds
+      enabled: activeTab === 'my-recipes',
     }
   );
 
-  // Filter recipes by search term
-  const filteredRecipes = React.useMemo(() => {
-    if (!data?.recipes) return [];
+  // Fetch community recipes
+  const { data: communityData, isLoading: communityLoading, error: communityError, refetch: refetchCommunity } = useQuery(
+    ['community-recipes', sortBy, order, searchTerm],
+    () => userRecipesApi.getCommunityRecipes({
+      sortBy: sortBy === 'mcas_score' ? 'mcas_score' : sortBy === 'times_made' ? 'times_made' : 'created_at',
+      order,
+      search: searchTerm || undefined,
+      page: 1,
+      limit: 100,
+    }),
+    {
+      staleTime: 30000,
+      enabled: activeTab === 'community',
+    }
+  );
 
-    if (!searchTerm.trim()) return data.recipes;
+  // Reset search when switching tabs
+  React.useEffect(() => {
+    setSearchTerm('');
+  }, [activeTab]);
+
+  // Determine which data to use
+  const isLoading = activeTab === 'my-recipes' ? myRecipesLoading : communityLoading;
+  const error = activeTab === 'my-recipes' ? myRecipesError : communityError;
+  const refetch = activeTab === 'my-recipes' ? refetchMyRecipes : refetchCommunity;
+
+  // Filter my recipes by search term (community recipes filtered server-side)
+  const filteredRecipes = React.useMemo(() => {
+    if (activeTab === 'community') {
+      return communityData?.recipes || [];
+    }
+
+    if (!myRecipesData?.recipes) return [];
+
+    if (!searchTerm.trim()) return myRecipesData.recipes;
 
     const term = searchTerm.toLowerCase();
-    return data.recipes.filter(recipe =>
+    return myRecipesData.recipes.filter(recipe =>
       recipe.title.toLowerCase().includes(term) ||
       recipe.description?.toLowerCase().includes(term)
     );
-  }, [data?.recipes, searchTerm]);
+  }, [activeTab, myRecipesData?.recipes, communityData?.recipes, searchTerm]);
+
+  // Handle recipe sharing toggle
+  const handleSharingChange = (isPublic: boolean) => {
+    // Refetch to update the list
+    refetchMyRecipes();
+  };
+
+  // Handle community recipe interactions
+  const handleLike = (recipeId: number, isLiked: boolean) => {
+    // Optionally refetch to update like counts
+    refetchCommunity();
+  };
+
+  const handleSave = (recipeId: number) => {
+    // Show success message and refetch my recipes
+    refetchMyRecipes();
+  };
 
   // Get safety level color
   const getSafetyColor = (level: string) => {
@@ -58,7 +111,7 @@ export function UserRecipesPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Mine Oppskrifter</h1>
           <p className="text-gray-600 mt-2">
@@ -72,6 +125,32 @@ export function UserRecipesPage() {
           <Plus className="w-5 h-5" />
           <span className="font-medium">Ny oppskrift</span>
         </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('my-recipes')}
+            className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+              activeTab === 'my-recipes'
+                ? 'text-primary-600 border-b-2 border-primary-600 bg-primary-50'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            Mine oppskrifter
+          </button>
+          <button
+            onClick={() => setActiveTab('community')}
+            className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+              activeTab === 'community'
+                ? 'text-primary-600 border-b-2 border-primary-600 bg-primary-50'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            Fellesskapets oppskrifter
+          </button>
+        </div>
       </div>
 
       {/* Search and Filter Bar */}
@@ -133,8 +212,8 @@ export function UserRecipesPage() {
         </div>
       )}
 
-      {/* Empty State */}
-      {!isLoading && !error && filteredRecipes.length === 0 && !searchTerm && (
+      {/* Empty State - My Recipes */}
+      {!isLoading && !error && activeTab === 'my-recipes' && filteredRecipes.length === 0 && !searchTerm && (
         <div className="text-center py-16 bg-white rounded-lg border-2 border-dashed border-gray-300">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Plus className="w-8 h-8 text-gray-400" />
@@ -155,6 +234,21 @@ export function UserRecipesPage() {
         </div>
       )}
 
+      {/* Empty State - Community Recipes */}
+      {!isLoading && !error && activeTab === 'community' && filteredRecipes.length === 0 && !searchTerm && (
+        <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Users className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Ingen delte oppskrifter ennå
+          </h3>
+          <p className="text-gray-600">
+            Bli den første til å dele en oppskrift med fellesskapet!
+          </p>
+        </div>
+      )}
+
       {/* No search results */}
       {!isLoading && !error && filteredRecipes.length === 0 && searchTerm && (
         <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
@@ -162,11 +256,37 @@ export function UserRecipesPage() {
         </div>
       )}
 
-      {/* Recipes Grid */}
-      {!isLoading && !error && filteredRecipes.length > 0 && (
+      {/* Recipes Grid - My Recipes */}
+      {!isLoading && !error && activeTab === 'my-recipes' && filteredRecipes.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRecipes.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} getSafetyColor={getSafetyColor} getSafetyText={getSafetyText} />
+            <div key={recipe.id} className="space-y-4">
+              <RecipeCard
+                recipe={recipe as UserRecipe}
+                getSafetyColor={getSafetyColor}
+                getSafetyText={getSafetyText}
+              />
+              {/* Sharing toggle for own recipes */}
+              <RecipeSharingToggle
+                recipeId={recipe.id}
+                isPublic={(recipe as UserRecipe).is_public}
+                onChange={handleSharingChange}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Recipes Grid - Community Recipes */}
+      {!isLoading && !error && activeTab === 'community' && filteredRecipes.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredRecipes.map((recipe) => (
+            <SharedRecipeCard
+              key={recipe.id}
+              recipe={recipe as UserRecipeWithAuthor}
+              onLike={handleLike}
+              onSave={handleSave}
+            />
           ))}
         </div>
       )}

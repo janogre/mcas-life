@@ -366,8 +366,6 @@ export interface SavedRecipe {
 }
 
 // User Recipe Types - Custom user-created recipes
-export type RecipeSafetyLevel = 'safe' | 'caution' | 'risky' | 'unsafe';
-
 export interface RecipeIngredient {
   food_id: number;
   amount: number;

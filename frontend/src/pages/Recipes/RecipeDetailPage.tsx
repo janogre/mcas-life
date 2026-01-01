@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { userRecipesApi } from '../../lib/api';
 import type { UserRecipe, RecipeIngredient } from '../../types/shared';
+import { RecipeSharingToggle } from '../../components/Recipes/RecipeSharingToggle';
 
 export function RecipeDetailPage() {
   const navigate = useNavigate();
@@ -54,6 +55,13 @@ export function RecipeDetailPage() {
       return;
     }
     deleteMutation.mutate();
+  };
+
+  // Handle sharing toggle
+  const handleSharingChange = (isPublic: boolean) => {
+    // Refetch recipe to update the sharing status
+    queryClient.invalidateQueries(['user-recipe', id]);
+    queryClient.invalidateQueries(['user-recipes']);
   };
 
   // Get safety level styling
@@ -318,6 +326,15 @@ export function RecipeDetailPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Sharing Toggle */}
+      <div className="mb-6">
+        <RecipeSharingToggle
+          recipeId={recipe.id}
+          isPublic={recipe.is_public}
+          onChange={handleSharingChange}
+        />
       </div>
 
       {/* Trigger Warnings */}
