@@ -21,7 +21,7 @@ CREATE INDEX IF NOT EXISTS recipe_likes_recipe_id_idx ON recipe_likes(recipe_id)
 CREATE TABLE IF NOT EXISTS recipe_saves (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  original_recipe_id INTEGER NOT NULL REFERENCES user_recipes(id) ON DELETE SET NULL,
+  original_recipe_id INTEGER REFERENCES user_recipes(id) ON DELETE SET NULL,
   saved_recipe_id INTEGER NOT NULL REFERENCES user_recipes(id) ON DELETE CASCADE,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   CONSTRAINT recipe_saves_unique UNIQUE(user_id, original_recipe_id)
