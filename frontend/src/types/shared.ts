@@ -482,3 +482,187 @@ export interface UserPublicRecipesResponse {
   user: RecipeAuthor;
   total: number;
 }
+
+// ================================
+// Recurring Schedules Types
+// ================================
+
+export type ScheduleType = 'medication' | 'meal' | 'activity';
+export type FrequencyType = 'daily' | 'weekly' | 'interval';
+export type IntervalUnit = 'days' | 'weeks';
+export type MedicationType = 'mcas' | 'prescription' | 'over_counter' | 'supplement';
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'other';
+export type ActivityType = 'temperature_change' | 'social_trigger' | 'physical_activity';
+
+export interface RecurringSchedule {
+  id: number;
+  user_id: number;
+  schedule_type: ScheduleType;
+  frequency_type: FrequencyType;
+  weekly_days?: number[]; // [0=Sunday, 1=Monday, ..., 6=Saturday]
+  interval_count?: number;
+  interval_unit?: IntervalUnit;
+  scheduled_times: string[]; // ["08:00", "12:00", "18:00"]
+  start_date: string; // ISO date
+  end_date?: string; // ISO date
+  is_active: boolean;
+
+  // Medication-specific fields
+  medication_catalog_id?: number;
+  medication_custom_name?: string;
+  medication_type?: MedicationType;
+  dosage?: string;
+  dosage_unit?: string;
+
+  // Meal-specific fields
+  meal_type?: MealType;
+  meal_recipe_id?: number;
+  meal_foods?: Array<{ food_id: number; amount: number; unit: string }>;
+
+  // Activity-specific fields
+  activity_type?: ActivityType;
+  activity_duration_minutes?: number;
+
+  // Common fields
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateScheduleInput {
+  schedule_type: ScheduleType;
+  frequency_type: FrequencyType;
+  weekly_days?: number[];
+  interval_count?: number;
+  interval_unit?: IntervalUnit;
+  scheduled_times: string[];
+  start_date: string; // ISO date
+  end_date?: string; // ISO date
+
+  // Type-specific fields
+  medication_catalog_id?: number;
+  medication_custom_name?: string;
+  medication_type?: MedicationType;
+  dosage?: string;
+  dosage_unit?: string;
+
+  meal_type?: MealType;
+  meal_recipe_id?: number;
+  meal_foods?: Array<{ food_id: number; amount: number; unit: string }>;
+
+  activity_type?: ActivityType;
+  activity_duration_minutes?: number;
+
+  notes?: string;
+}
+
+export interface SchedulePause {
+  id: number;
+  schedule_id: number;
+  pause_start_date: string; // ISO date
+  pause_end_date: string; // ISO date
+  reason?: string;
+  created_at: string;
+}
+
+export interface SkippedInstance {
+  id: number;
+  schedule_id: number;
+  skipped_date: string; // ISO date
+  skipped_time: string; // HH:MM
+  reason?: string;
+  created_at: string;
+}
+
+export interface ScheduleInstance {
+  schedule_id: number;
+  date: string; // ISO date YYYY-MM-DD
+  time: string; // HH:MM
+  schedule: RecurringSchedule;
+}
+
+export interface PauseScheduleInput {
+  pause_start_date: string; // ISO date
+  pause_end_date: string; // ISO date
+  reason?: string;
+}
+
+export interface CalendarMonthData {
+  instances: Array<{
+    date: string;
+    times: string[];
+    statuses: ('scheduled' | 'skipped')[];
+  }>;
+  pauses: Array<{
+    start_date: string;
+    end_date: string;
+    reason?: string;
+  }>;
+}
+
+export interface ScheduleFilters {
+  type?: ScheduleType;
+  active?: boolean;
+}
+
+export interface PushSubscription {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
+// Norwegian translations for schedule types
+export const SCHEDULE_TYPE_NAMES_NO: Record<ScheduleType, string> = {
+  medication: 'Medisin',
+  meal: 'Måltid',
+  activity: 'Aktivitet'
+};
+
+export const MEAL_TYPE_NAMES_NO: Record<MealType, string> = {
+  breakfast: 'Frokost',
+  lunch: 'Lunsj',
+  dinner: 'Middag',
+  snack: 'Mellommåltid',
+  other: 'Annet'
+};
+
+export const ACTIVITY_TYPE_NAMES_NO: Record<ActivityType, string> = {
+  temperature_change: 'Temperaturendring',
+  social_trigger: 'Sosial trigger',
+  physical_activity: 'Fysisk aktivitet'
+};
+
+export const MEDICATION_TYPE_NAMES_NO: Record<MedicationType, string> = {
+  mcas: 'MCAS-medisin',
+  prescription: 'Reseptbelagt',
+  over_counter: 'Reseptfritt',
+  supplement: 'Kosttilskudd'
+};
+
+export const FREQUENCY_TYPE_NAMES_NO: Record<FrequencyType, string> = {
+  daily: 'Daglig',
+  weekly: 'Ukentlig',
+  interval: 'Egendefinert intervall'
+};
+
+export const WEEKDAY_NAMES_NO = [
+  'Søndag',
+  'Mandag',
+  'Tirsdag',
+  'Onsdag',
+  'Torsdag',
+  'Fredag',
+  'Lørdag'
+];
+
+export const WEEKDAY_NAMES_SHORT_NO = [
+  'Søn',
+  'Man',
+  'Tir',
+  'Ons',
+  'Tor',
+  'Fre',
+  'Lør'
+];

@@ -1091,5 +1091,143 @@ export type NewUserRecipe = typeof userRecipes.$inferInsert;
 export type RecipeLike = typeof recipeLikes.$inferSelect;
 export type NewRecipeLike = typeof recipeLikes.$inferInsert;
 export type RecipeSave = typeof recipeSaves.$inferSelect;
-export type NewRecipeSave = typeof recipeSaves.$inferInsert; 
+export type NewRecipeSave = typeof recipeSaves.$inferInsert;
+
+// Recurring Schedules - Master schedule configuration for medications, meals, and activities
+export const recurringSchedules = pgTable('recurring_schedules', {
+  id: serial('id').primaryKey(),
+  user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+
+  // What is being scheduled
+  schedule_type: varchar('schedule_type', { length: 20 }).notNull(), // 'medication' | 'meal' | 'activity'
+
+  // Schedule pattern
+  frequency_type: varchar('frequency_type', { length: 20 }).notNull(), // 'daily' | 'weekly' | 'interval'
+  weekly_days: jsonb('weekly_days').$type<number[]>(), // [1, 3, 5] for Mon, Wed, Fri
+  interval_count: integer('interval_count'),
+  interval_unit: varchar('interval_unit', { length: 10 }), // 'days' | 'weeks'
+
+  // Times during the day
+  scheduled_times: jsonb('scheduled_times').$type<string[]>().notNull(), // ["08:00", "12:00", "18:00"]
+
+  // Date range
+  start_date: date('start_date').notNull(),
+  end_date: date('end_date'), // NULL = ongoing
+
+  // Status
+  is_active: boolean('is_active').notNull().default(true),
+
+  // Medication-specific fields
+  medication_catalog_id: integer('medication_catalog_id').references(() => medicationsCatalog.id),
+  medication_custom_name: varchar('medication_custom_name', { length: 255 }),
+  medication_type: medicationTypeEnum('medication_type'),
+  dosage: varchar('dosage', { length: 100 }),
+  dosage_unit: varchar('dosage_unit', { length: 20 }),
+
+  // Meal-specific fields
+  meal_type: mealTypeEnum('meal_type'),
+  meal_recipe_id: integer('meal_recipe_id').references(() => userRecipes.id),
+  meal_foods: jsonb('meal_foods').$type<Array<{
+    food_id: number;
+    amount: number;
+    unit: string;
+  }>>(),
+
+  // Activity-specific fields
+  activity_type: activityTypeEnum('activity_type'),
+  activity_duration_minutes: integer('activity_duration_minutes'),
+
+  // Common fields
+  notes: text('notes'),
+
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow()
+}, (table) => ({
+  userIdIdx: index('recurring_schedules_user_id_idx').on(table.user_id),
+  typeIdx: index('recurring_schedules_type_idx').on(table.schedule_type),
+  activeIdx: index('recurring_schedules_active_idx').on(table.is_active),
+  userActiveIdx: index('recurring_schedules_user_active_idx').on(table.user_id, table.is_active)
+}));
+
+// Schedule Pauses - Temporary pause periods
+export const schedulePauses = pgTable('schedule_pauses', {
+  id: serial('id').primaryKey(),
+  schedule_id: integer('schedule_id').notNull().references(() => recurringSchedules.id, { onDelete: 'cascade' }),
+
+  pause_start_date: date('pause_start_date').notNull(),
+  pause_end_date: date('pause_end_date').notNull(),
+  reason: text('reason'),
+
+  created_at: timestamp('created_at').notNull().defaultNow()
+}, (table) => ({
+  scheduleIdIdx: index('schedule_pauses_schedule_id_idx').on(table.schedule_id),
+  datesIdx: index('schedule_pauses_dates_idx').on(table.pause_start_date, table.pause_end_date)
+}));
+
+// Schedule Skipped Instances - Individual skipped occurrences
+export const scheduleSkippedInstances = pgTable('schedule_skipped_instances', {
+  id: serial('id').primaryKey(),
+  schedule_id: integer('schedule_id').notNull().references(() => recurringSchedules.id, { onDelete: 'cascade' }),
+
+  skipped_date: date('skipped_date').notNull(),
+  skipped_time: varchar('skipped_time', { length: 8 }).notNull(), // TIME format as string
+
+  reason: text('reason'),
+
+  created_at: timestamp('created_at').notNull().defaultNow()
+}, (table) => ({
+  scheduleIdIdx: index('schedule_skipped_instances_schedule_id_idx').on(table.schedule_id),
+  dateIdx: index('schedule_skipped_instances_date_idx').on(table.skipped_date),
+  uniqueSkip: uniqueIndex('schedule_skipped_instances_unique').on(table.schedule_id, table.skipped_date, table.skipped_time)
+}));
+
+// Schedule Notifications - Track notification delivery
+export const scheduleNotifications = pgTable('schedule_notifications', {
+  id: serial('id').primaryKey(),
+  schedule_id: integer('schedule_id').notNull().references(() => recurringSchedules.id, { onDelete: 'cascade' }),
+  user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+
+  scheduled_for: timestamp('scheduled_for').notNull(),
+  sent_at: timestamp('sent_at'),
+
+  notification_type: varchar('notification_type', { length: 20 }).notNull(), // 'reminder' | 'missed'
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // 'pending' | 'sent' | 'failed' | 'dismissed'
+
+  created_at: timestamp('created_at').notNull().defaultNow()
+}, (table) => ({
+  userIdx: index('schedule_notifications_user_idx').on(table.user_id),
+  scheduledIdx: index('schedule_notifications_scheduled_idx').on(table.scheduled_for),
+  statusIdx: index('schedule_notifications_status_idx').on(table.status)
+}));
+
+// Push Subscriptions - Web push notification subscriptions
+export const pushSubscriptions = pgTable('push_subscriptions', {
+  id: serial('id').primaryKey(),
+  user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+
+  endpoint: text('endpoint').notNull(),
+  keys_p256dh: text('keys_p256dh').notNull(),
+  keys_auth: text('keys_auth').notNull(),
+
+  is_active: boolean('is_active').notNull().default(true),
+
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow()
+}, (table) => ({
+  userIdIdx: index('push_subscriptions_user_id_idx').on(table.user_id),
+  activeIdx: index('push_subscriptions_active_idx').on(table.is_active),
+  userUnique: uniqueIndex('push_subscriptions_user_unique').on(table.user_id)
+}));
+
+// Export types
+export type RecurringSchedule = typeof recurringSchedules.$inferSelect;
+export type NewRecurringSchedule = typeof recurringSchedules.$inferInsert;
+export type SchedulePause = typeof schedulePauses.$inferSelect;
+export type NewSchedulePause = typeof schedulePauses.$inferInsert;
+export type ScheduleSkippedInstance = typeof scheduleSkippedInstances.$inferSelect;
+export type NewScheduleSkippedInstance = typeof scheduleSkippedInstances.$inferInsert;
+export type ScheduleNotification = typeof scheduleNotifications.$inferSelect;
+export type NewScheduleNotification = typeof scheduleNotifications.$inferInsert;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type NewPushSubscription = typeof pushSubscriptions.$inferInsert;
 

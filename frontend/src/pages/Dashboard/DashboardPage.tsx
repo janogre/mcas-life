@@ -16,12 +16,18 @@ import {
   Target,
   Lightbulb,
   Circle,
-  Loader2
+  Loader2,
+  Clock,
+  Bell
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDate } from '../../lib/utils';
 import { ProgressEncouragement } from '../../components/UI/ProgressEncouragement';
 import { getDashboardData, DashboardData } from '../../services/dashboardApi';
+import { useQuery } from 'react-query';
+import { schedulesApi } from '../../lib/api';
+import type { ScheduleInstance } from '../../types/shared';
+import { SCHEDULE_TYPE_NAMES_NO } from '../../types/shared';
 import './dashboard-animations.css';
 
 export function DashboardPage() {
@@ -29,6 +35,30 @@ export function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch upcoming schedule instances (only for today)
+  const { data: allUpcomingInstances } = useQuery({
+    queryKey: ['upcoming-instances'],
+    queryFn: () => schedulesApi.getUpcomingInstances(1), // Only today
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+  });
+
+  // Filter to only show instances for today that haven't passed yet
+  const upcomingInstances = React.useMemo(() => {
+    if (!allUpcomingInstances) return [];
+
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+
+    return allUpcomingInstances.filter(instance => {
+      // Only show today's instances
+      if (instance.date !== today) return false;
+
+      // Only show instances that haven't passed yet
+      const instanceDateTime = new Date(instance.date + 'T' + instance.time);
+      return instanceDateTime >= now;
+    });
+  }, [allUpcomingInstances]);
 
   useEffect(() => {
     loadDashboardData();
@@ -328,6 +358,235 @@ export function DashboardPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* Upcoming Schedules - Always show this section */}
+      <div style={{
+        background: 'white',
+        borderRadius: 'var(--radius-gentle)',
+        padding: '2rem',
+        boxShadow: 'var(--shadow-gentle)',
+        border: '1px solid var(--color-sage-100)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              borderRadius: '0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Bell style={{ width: '20px', height: '20px', color: 'white' }} />
+            </div>
+            <h2 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1.5rem',
+              fontWeight: 600,
+              color: 'var(--color-sage-900)',
+              letterSpacing: '-0.01em',
+            }}>
+              I dag
+            </h2>
+          </div>
+          <button
+            onClick={() => window.location.href = '/schedules'}
+            style={{
+              color: 'var(--color-medical-600)',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              transition: 'color 0.2s ease',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            Administrer
+            <ArrowUpRight style={{ width: '16px', height: '16px' }} />
+          </button>
+        </div>
+
+        {upcomingInstances && upcomingInstances.length > 0 ? (
+          <>
+          <div className="grid gap-3">
+            {upcomingInstances.slice(0, 5).map((instance, index) => {
+              const schedule = instance.schedule;
+
+              // Get schedule name based on type
+              const scheduleName = schedule.schedule_type === 'medication'
+                ? schedule.medication_custom_name || 'Medisin'
+                : schedule.schedule_type === 'meal'
+                ? schedule.meal_custom_name || SCHEDULE_TYPE_NAMES_NO.meal
+                : schedule.activity_custom_name || SCHEDULE_TYPE_NAMES_NO.activity;
+
+              const icon = schedule.schedule_type === 'medication' ? Pill :
+                          schedule.schedule_type === 'meal' ? Utensils :
+                          Activity;
+
+              const Icon = icon;
+
+              const instanceDate = new Date(instance.date + 'T' + instance.time);
+              const now = new Date();
+              const diffMs = instanceDate.getTime() - now.getTime();
+              const diffMins = Math.floor(diffMs / 60000);
+
+              // Since we only show today's upcoming instances, show time in friendly format
+              let timeLabel = '';
+              if (diffMins < 60) {
+                timeLabel = `Om ${diffMins} min`;
+              } else {
+                timeLabel = `Kl ${instance.time}`;
+              }
+
+              return (
+                <div
+                  key={`${instance.schedule_id}-${instance.date}-${instance.time}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '1rem',
+                    background: diffMins < 60 ? '#eff6ff' : '#f9fafb',
+                    border: diffMins < 60 ? '1px solid #bfdbfe' : '1px solid #e5e7eb',
+                    borderRadius: '0.875rem',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{
+                      width: '44px',
+                      height: '44px',
+                      background: schedule.schedule_type === 'medication' ? '#fef3c7' :
+                                  schedule.schedule_type === 'meal' ? '#d1fae5' :
+                                  '#ddd6fe',
+                      borderRadius: '0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: schedule.schedule_type === 'medication' ? '1.5px solid #fbbf24' :
+                              schedule.schedule_type === 'meal' ? '1.5px solid #34d399' :
+                              '1.5px solid #a78bfa',
+                    }}>
+                      <Icon style={{
+                        width: '20px',
+                        height: '20px',
+                        color: schedule.schedule_type === 'medication' ? '#b45309' :
+                                schedule.schedule_type === 'meal' ? '#047857' :
+                                '#6d28d9'
+                      }} />
+                    </div>
+                    <div>
+                      <p style={{
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        color: 'var(--color-sage-900)',
+                        marginBottom: '0.25rem',
+                      }}>
+                        {scheduleName}
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Clock style={{ width: '14px', height: '14px', color: 'var(--color-sage-500)' }} />
+                        <span style={{
+                          fontSize: '0.85rem',
+                          color: diffMins < 60 ? '#2563eb' : 'var(--color-sage-500)',
+                          fontWeight: diffMins < 60 ? 600 : 500,
+                        }}>
+                          {timeLabel}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {diffMins < 60 && (
+                    <span style={{
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '999px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      background: '#dbeafe',
+                      color: '#1e40af',
+                    }}>
+                      Snart
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {upcomingInstances.length > 5 && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => window.location.href = '/schedules'}
+                style={{
+                  padding: '0.5rem 1rem',
+                  color: 'var(--color-medical-600)',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                Vis alle ({upcomingInstances.length})
+              </button>
+            </div>
+          )}
+          </>
+        ) : (
+          <div style={{
+            textAlign: 'center',
+            padding: '3rem 1rem',
+            background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)',
+            borderRadius: 'var(--radius-soft)',
+            border: '2px dashed #e5e7eb'
+          }}>
+            <Calendar style={{
+              width: '48px',
+              height: '48px',
+              color: '#9ca3af',
+              margin: '0 auto 1rem'
+            }} />
+            <p style={{
+              fontSize: '1rem',
+              color: '#6b7280',
+              marginBottom: '0.5rem',
+              fontWeight: 500
+            }}>
+              Ingen kommende registreringer i dag
+            </p>
+            <p style={{
+              fontSize: '0.9rem',
+              color: '#9ca3af',
+              marginBottom: '1.5rem'
+            }}>
+              Opprett faste medisiner, måltider eller aktiviteter
+            </p>
+            <button
+              onClick={() => window.location.href = '/schedules'}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: 'var(--color-medical-600)',
+                color: 'white',
+                borderRadius: 'var(--radius-soft)',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                fontWeight: 600,
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              }}
+              onMouseOver={(e) => e.currentTarget.style.background = 'var(--color-medical-700)'}
+              onMouseOut={(e) => e.currentTarget.style.background = 'var(--color-medical-600)'}
+            >
+              Administrer faste registreringer
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Progress and Encouragement */}

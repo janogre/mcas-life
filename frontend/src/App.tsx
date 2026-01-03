@@ -39,6 +39,11 @@ import { ActivityAddPage } from './pages/Activities/ActivityAddPage';
 import { IllnessAddPage } from './pages/Illness/IllnessAddPage';
 import { MealAddPage } from './pages/Meals/MealAddPage';
 import { AdminPage } from './pages/Admin/AdminPage';
+import SchedulesManagementPage from './pages/Schedules/SchedulesManagementPage';
+import ScheduleCreatePage from './pages/Schedules/ScheduleCreatePage';
+import ScheduleEditPage from './pages/Schedules/ScheduleEditPage';
+import ScheduleCalendarPage from './pages/Schedules/ScheduleCalendarPage';
+import SchedulePausePage from './pages/Schedules/SchedulePausePage';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -322,6 +327,48 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MealAddPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Schedule routes */}
+              <Route
+                path="/schedules"
+                element={
+                  <ProtectedRoute>
+                    <SchedulesManagementPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/schedules/new"
+                element={
+                  <ProtectedRoute>
+                    <ScheduleCreatePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/schedules/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <ScheduleEditPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/schedules/:id/calendar"
+                element={
+                  <ProtectedRoute>
+                    <ScheduleCalendarPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/schedules/:id/pause"
+                element={
+                  <ProtectedRoute>
+                    <SchedulePausePage />
                   </ProtectedRoute>
                 }
               />

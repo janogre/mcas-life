@@ -15,6 +15,8 @@ import userRecipeRoutes from './services/food/userRecipeRoutes.js';
 import recipeSharingRoutes from './services/food/recipeSharingRoutes.js';
 import { analyticsRoutes } from './services/analytics/analyticsRoutes.js';
 import { recipeRoutes } from './services/recipes/recipeRoutes.js';
+import scheduleRoutes from './services/schedules/scheduleRoutes.js';
+import { initializeScheduleCronJobs } from './services/schedules/cronJobs.js';
 
 // Import legacy routes (to be migrated to services)
 import { sighiRoutes } from './routes/sighi.js';
@@ -131,6 +133,7 @@ app.use('/api/activities', activityRoutes); // Activity tracking (temperature, s
 app.use('/api/illness', illnessRoutes); // Illness tracking with MCAS impact
 app.use('/api/meals', mealRoutes); // Meal tracking with food correlation
 app.use('/api/preferences', authenticateToken, preferencesRoutes); // User preferences including analysis mode
+app.use('/api/schedules', scheduleRoutes); // Recurring schedules for medications, meals, and activities
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -158,7 +161,8 @@ app.get('/', (req, res) => {
       '/api/medications',
       '/api/activities',
       '/api/illness',
-      '/api/meals'
+      '/api/meals',
+      '/api/schedules'
     ]
   });
 });
@@ -175,6 +179,9 @@ if (process.env['NODE_ENV'] !== 'test') {
     console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
     console.log(`📚 API documentation: http://localhost:${PORT}/api`);
     console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth`);
+
+    // Initialize cron jobs for schedule notifications
+    initializeScheduleCronJobs();
   });
 }
 

@@ -9,6 +9,7 @@ import {
   Shield,
   ChefHat,
   BookOpen,
+  Calendar,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { BottomNavigationSubmenu, SubmenuItem } from './BottomNavigationSubmenu';
@@ -28,6 +29,11 @@ const navigationItems = [
     name: 'Mat',
     href: '/food',
     icon: Search,
+  },
+  {
+    name: 'Schedules',
+    href: '/schedules',
+    icon: Calendar,
   },
   {
     name: 'Analyse',

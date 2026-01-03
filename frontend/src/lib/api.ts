@@ -20,7 +20,16 @@ import type {
   CommunityRecipesParams,
   CommunityRecipesResponse,
   UserPublicRecipesResponse,
-  RecipeExtendedInfo
+  RecipeExtendedInfo,
+  RecurringSchedule,
+  CreateScheduleInput,
+  ScheduleInstance,
+  SchedulePause,
+  SkippedInstance,
+  PauseScheduleInput,
+  CalendarMonthData,
+  ScheduleFilters,
+  PushSubscription
 } from '../types/shared';
 
 // API client configuration - Use environment variable
@@ -1254,6 +1263,164 @@ export const adminApi = {
   deleteUser: async (id: number) => {
     const response = await api.delete(`/admin/users/${id}`);
     return response.data;
+  },
+};
+
+/**
+ * Recurring Schedules API
+ * Manage recurring schedules for medications, meals, and activities
+ */
+export const schedulesApi = {
+  /**
+   * Get all schedules for the authenticated user
+   */
+  getSchedules: async (filters?: ScheduleFilters): Promise<RecurringSchedule[]> => {
+    const params = new URLSearchParams();
+    if (filters?.type) params.append('type', filters.type);
+    if (filters?.active !== undefined) params.append('active', filters.active.toString());
+
+    const response = await api.get(`/schedules?${params.toString()}`);
+    return response.data;
+  },
+
+  /**
+   * Create a new schedule
+   */
+  createSchedule: async (data: CreateScheduleInput): Promise<RecurringSchedule> => {
+    const response = await api.post('/schedules', data);
+    return response.data;
+  },
+
+  /**
+   * Get a specific schedule
+   */
+  getSchedule: async (id: number): Promise<RecurringSchedule> => {
+    const response = await api.get(`/schedules/${id}`);
+    return response.data;
+  },
+
+  /**
+   * Update a schedule
+   */
+  updateSchedule: async (id: number, updates: Partial<CreateScheduleInput>): Promise<RecurringSchedule> => {
+    const response = await api.put(`/schedules/${id}`, updates);
+    return response.data;
+  },
+
+  /**
+   * Delete a schedule
+   */
+  deleteSchedule: async (id: number): Promise<void> => {
+    await api.delete(`/schedules/${id}`);
+  },
+
+  /**
+   * Toggle schedule active/inactive
+   */
+  toggleScheduleActive: async (id: number, isActive: boolean): Promise<void> => {
+    await api.put(`/schedules/${id}/toggle`, { is_active: isActive });
+  },
+
+  /**
+   * Get instances for a schedule within a date range
+   */
+  getInstances: async (id: number, fromDate: string, toDate: string): Promise<ScheduleInstance[]> => {
+    const response = await api.get(`/schedules/${id}/instances`, {
+      params: { from: fromDate, to: toDate }
+    });
+    return response.data;
+  },
+
+  /**
+   * Get upcoming instances across all active schedules
+   */
+  getUpcomingInstances: async (daysAhead: number = 7): Promise<ScheduleInstance[]> => {
+    const response = await api.get('/schedules/upcoming/all', {
+      params: { days: daysAhead }
+    });
+    return response.data;
+  },
+
+  /**
+   * Skip a specific instance
+   */
+  skipInstance: async (id: number, date: string, time: string, reason?: string): Promise<SkippedInstance> => {
+    const response = await api.post(`/schedules/${id}/skip-instance`, {
+      date,
+      time,
+      reason
+    });
+    return response.data;
+  },
+
+  /**
+   * Unskip a previously skipped instance
+   */
+  unskipInstance: async (id: number, date: string, time: string): Promise<void> => {
+    await api.delete(`/schedules/${id}/skip-instance`, {
+      data: { date, time }
+    });
+  },
+
+  /**
+   * Get all skipped instances for a schedule
+   */
+  getSkippedInstances: async (id: number): Promise<SkippedInstance[]> => {
+    const response = await api.get(`/schedules/${id}/skipped-instances`);
+    return response.data;
+  },
+
+  /**
+   * Get all pause periods for a schedule
+   */
+  getPausePeriods: async (id: number): Promise<SchedulePause[]> => {
+    const response = await api.get(`/schedules/${id}/pauses`);
+    return response.data;
+  },
+
+  /**
+   * Create a pause period for a schedule
+   */
+  pauseSchedule: async (id: number, pauseData: PauseScheduleInput): Promise<SchedulePause> => {
+    const response = await api.post(`/schedules/${id}/pauses`, pauseData);
+    return response.data;
+  },
+
+  /**
+   * Resume a schedule by deleting a pause period
+   */
+  resumeSchedule: async (id: number, pauseId: number): Promise<void> => {
+    await api.delete(`/schedules/${id}/pauses/${pauseId}`);
+  },
+
+  /**
+   * Get calendar data for a specific month
+   */
+  getCalendarMonth: async (id: number, year: number, month: number): Promise<CalendarMonthData> => {
+    const response = await api.get(`/schedules/${id}/calendar-month`, {
+      params: { year, month }
+    });
+    return response.data;
+  },
+};
+
+/**
+ * Push Notifications API
+ * Manage web push notification subscriptions
+ */
+export const pushNotificationsApi = {
+  /**
+   * Subscribe to push notifications
+   */
+  subscribe: async (subscription: PushSubscription): Promise<void> => {
+    await api.post('/schedules/push/subscribe', subscription);
+  },
+
+  /**
+   * Unsubscribe from push notifications
+   */
+  unsubscribe: async (): Promise<void> => {
+    await api.delete('/schedules/push/unsubscribe');
   },
 };
 
